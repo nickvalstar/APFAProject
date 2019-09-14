@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>Key.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: rgb(0,0,0); font-weight: normal; font-style: normal; }
+.s0 { color: rgb(204,120,50); }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(106,135,89); }
+.s3 { color: rgb(104,151,187); }
+.s4 { color: rgb(128,128,128); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#C0C0C0" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+Key.java</FONT>
+</center></TD></TR></TABLE>
+<pre>
+
+<span class="s0">package </span><span class="s1">com.damirvandic.sparker.students.nick</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+</span><span class="s0">import </span><span class="s1">java.util.*</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">public class </span><span class="s1">Key { 
+ 
+ 
+    </span><span class="s0">public </span><span class="s1">String key_name</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">String webshop</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public double </span><span class="s1">coverage</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public int </span><span class="s1">diversity</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">List&lt;String&gt; rawvalues = </span><span class="s0">new </span><span class="s1">ArrayList()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">Set&lt;String&gt; rawuniquevalues</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">List&lt;String&gt; possibleBrands =</span><span class="s0">new </span><span class="s1">ArrayList()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">List&lt;String&gt; stringValues = </span><span class="s0">new </span><span class="s1">ArrayList()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">List&lt;Double&gt; doubleValues = </span><span class="s0">new </span><span class="s1">ArrayList()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">List&lt;String&gt; doubleValues_strings = </span><span class="s0">new </span><span class="s1">ArrayList&lt;String&gt;()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public double </span><span class="s1">productCountStrings</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public double </span><span class="s1">productCountDoubles</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">String datatype</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">String unit = </span><span class="s2">&quot;none&quot;</span><span class="s0">;</span><span class="s1"> 
+    Map&lt;String</span><span class="s0">, </span><span class="s1">Integer&gt; cleaned_units = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">Set&lt;String&gt; raw_units = </span><span class="s0">new </span><span class="s1">HashSet&lt;String&gt;()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public double </span><span class="s1">std</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public int </span><span class="s1">dimensions_two</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public int </span><span class="s1">dimensions_three</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">String dimension</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public int </span><span class="s1">brandcount</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+    Key(String webshop_input</span><span class="s0">,</span><span class="s1">String key_name_input){ 
+        </span><span class="s0">this</span><span class="s1">.key_name = key_name_input</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.webshop = webshop_input</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.productCountStrings = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.productCountDoubles = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.dimensions_two=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.dimensions_three=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.dimension=</span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.brandcount=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+ 
+ 
+    </span><span class="s0">public void </span><span class="s1">addRawValue(String input_value){ 
+        rawvalues.add(input_value)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public void </span><span class="s1">addStringValue(String input_value){ 
+        </span><span class="s0">if </span><span class="s1">(!stringValues.contains(input_value)) 
+            stringValues.add(input_value)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public void </span><span class="s1">addDoubleValue(Double input_value){ 
+        </span><span class="s0">if </span><span class="s1">(!doubleValues.contains(input_value)) 
+            doubleValues.add(input_value)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public void </span><span class="s1">calculateMetrics(Map&lt;String</span><span class="s0">, </span><span class="s1">Double&gt; webshop_sizes</span><span class="s0">, </span><span class="s1">Map&lt;String</span><span class="s0">, </span><span class="s1">String&gt; units</span><span class="s0">, </span><span class="s1">Set&lt;String&gt; exampleBrands){ 
+        </span><span class="s0">this</span><span class="s1">.coverage = rawvalues.size()/webshop_sizes.get(</span><span class="s0">this</span><span class="s1">.webshop)</span><span class="s0">;</span><span class="s4">//divide by its size</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.rawuniquevalues = </span><span class="s0">new </span><span class="s1">HashSet&lt;String&gt;(rawvalues)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.diversity = rawuniquevalues.size()</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//dimensions:</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String value : </span><span class="s0">this</span><span class="s1">.rawvalues){ 
+            </span><span class="s0">int </span><span class="s1">x = value.length() - value.replace(</span><span class="s2">&quot; x &quot;</span><span class="s0">, </span><span class="s2">&quot;  &quot;</span><span class="s1">).replace(</span><span class="s2">&quot; X &quot;</span><span class="s0">, </span><span class="s2">&quot;  &quot;</span><span class="s1">).length()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if</span><span class="s1">(x==</span><span class="s3">0</span><span class="s1">){ 
+                </span><span class="s0">continue;</span><span class="s1"> 
+            } </span><span class="s0">else if</span><span class="s1">(x==</span><span class="s3">1</span><span class="s1">){ 
+                dimensions_two++</span><span class="s0">;</span><span class="s1"> 
+            } </span><span class="s0">else if</span><span class="s1">(x==</span><span class="s3">2</span><span class="s1">){ 
+                dimensions_three++</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+        </span><span class="s0">if </span><span class="s1">((</span><span class="s0">double</span><span class="s1">) dimensions_two &gt; </span><span class="s3">0.9</span><span class="s1">*(</span><span class="s0">double</span><span class="s1">) rawvalues.size() ) 
+            </span><span class="s0">this</span><span class="s1">.dimension=</span><span class="s2">&quot;_two_dimensional&quot;</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">else if </span><span class="s1">((</span><span class="s0">double</span><span class="s1">) dimensions_three &gt; </span><span class="s3">0.9</span><span class="s1">*(</span><span class="s0">double</span><span class="s1">) rawvalues.size() ) 
+            </span><span class="s0">this</span><span class="s1">.dimension=</span><span class="s2">&quot;_three_dimensional&quot;</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//data type:</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(</span><span class="s0">this</span><span class="s1">.productCountStrings &gt; </span><span class="s0">this</span><span class="s1">.productCountDoubles) { 
+            </span><span class="s0">this</span><span class="s1">.datatype = </span><span class="s2">&quot;STRINGS&quot;</span><span class="s0">;</span><span class="s1"> 
+        } </span><span class="s0">else if </span><span class="s1">(</span><span class="s0">this</span><span class="s1">.productCountDoubles&gt;</span><span class="s3">0 </span><span class="s1">){ 
+            </span><span class="s0">this</span><span class="s1">.datatype = </span><span class="s2">&quot;DOUBLES&quot;</span><span class="s1">+</span><span class="s0">this</span><span class="s1">.dimension</span><span class="s0">;</span><span class="s1"> 
+        } </span><span class="s0">else </span><span class="s1">{ 
+            </span><span class="s0">throw new </span><span class="s1">IllegalArgumentException(</span><span class="s2">&quot;Unknown value type: &quot; </span><span class="s1">+ </span><span class="s0">this</span><span class="s1">.webshop + </span><span class="s0">this</span><span class="s1">.key_name)</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">for </span><span class="s1">(Double d : </span><span class="s0">this</span><span class="s1">.doubleValues) { 
+            doubleValues_strings.add(d.toString())</span><span class="s0">; </span><span class="s4">//convert doubles to strings (for jaccard)</span><span class="s1"> 
+        } 
+ 
+        </span><span class="s4">//units. decide which one is most frequent.</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">max_unit_count=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String possible_unit : cleaned_units.keySet()){ 
+            </span><span class="s0">if</span><span class="s1">(cleaned_units.get(possible_unit)&gt;max_unit_count){ 
+                </span><span class="s0">this</span><span class="s1">.unit= possible_unit</span><span class="s0">;</span><span class="s1"> 
+                max_unit_count= cleaned_units.get(possible_unit)</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+        </span><span class="s4">//std.dev</span><span class="s1"> 
+        std = get_standard_deviation()</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//check how many brands this key contains</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String b : </span><span class="s0">this</span><span class="s1">.rawvalues){ 
+            </span><span class="s0">if </span><span class="s1">(b.contains(</span><span class="s2">&quot; &quot;</span><span class="s1">)) 
+                b = b.substring(</span><span class="s3">0</span><span class="s0">,</span><span class="s1">b.indexOf(</span><span class="s2">&quot; &quot;</span><span class="s1">))</span><span class="s0">; </span><span class="s4">//take only first word.</span><span class="s1"> 
+            </span><span class="s0">this</span><span class="s1">.possibleBrands.add(b.toLowerCase())</span><span class="s0">;</span><span class="s1"> 
+        } 
+        List&lt;String&gt; checkedBrands = </span><span class="s0">new </span><span class="s1">ArrayList(possibleBrands)</span><span class="s0">;</span><span class="s1"> 
+        checkedBrands.retainAll(exampleBrands)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.brandcount = checkedBrands.size()</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s4">//        if (this.brandcount&gt;0){</span><span class="s1"> 
+</span><span class="s4">//            System.out.println(this.key_name + &quot;  &quot; + this.brandcount);</span><span class="s1"> 
+</span><span class="s4">//            for (String str : this.possibleBrands){</span><span class="s1"> 
+</span><span class="s4">//                System.out.println(str);</span><span class="s1"> 
+</span><span class="s4">//            }</span><span class="s1"> 
+</span><span class="s4">//            System.out.println(&quot;-------&quot;);</span><span class="s1"> 
+</span><span class="s4">//        }</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public void </span><span class="s1">addCleanedUnit(String found_unit) { 
+        </span><span class="s0">if </span><span class="s1">(!cleaned_units.containsKey(found_unit)){ 
+            cleaned_units.put(found_unit</span><span class="s0">,</span><span class="s3">0</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        } 
+        cleaned_units.put(found_unit</span><span class="s0">, </span><span class="s1">cleaned_units.get(found_unit) + </span><span class="s3">1</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public void </span><span class="s1">addRawUnit(String found_unit) { 
+        </span><span class="s0">if </span><span class="s1">(!raw_units.contains(found_unit)){ 
+            raw_units.add(found_unit)</span><span class="s0">;</span><span class="s1"> 
+        } 
+    } 
+ 
+    </span><span class="s0">public double </span><span class="s1">get_standard_deviation(){ 
+        </span><span class="s0">if </span><span class="s1">(doubleValues.size()&lt;=</span><span class="s3">1</span><span class="s1">) 
+            </span><span class="s0">return </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">sum = </span><span class="s3">0.0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for</span><span class="s1">(</span><span class="s0">double </span><span class="s1">a : doubleValues) 
+            sum += a</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">mean = sum/doubleValues.size()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">temp = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for</span><span class="s1">(</span><span class="s0">double </span><span class="s1">a : doubleValues) 
+            temp += (mean-a)*(mean-a)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">var = temp/doubleValues.size()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">return </span><span class="s1">Math.sqrt(var)</span><span class="s0">;</span><span class="s1"> 
+    } 
+} 
+</span></pre>
+</body>
+</html>

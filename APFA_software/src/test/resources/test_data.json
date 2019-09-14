@@ -1,0 +1,82 @@
+{
+    "32SL410U": [
+        {
+            "featuresMap": {
+                "DVI Inputs": "0",
+                "ENERGY STAR Qualified": "Yes",
+                "Ethernet Port": "No",
+                "Internet Connectable": "No",
+                "Remote Control Type": "Standard",
+                "Screen Size Class": "32\"",
+                "model": "32SL410U",
+                "url": "http://www.bestbuy.com/site/Toshiba+-+32%22+Class+/+LED+/+720p+/+60Hz+/+HDTV/1998047.p;jsessionid=7F6A764CB00A0B8BB01DC42B153EA24D.bbolsp-app01-05?id=1218305634981&skuId=1998047"
+            },
+            "modelID": "32SL410U",
+            "title": "Toshiba - 32\" Class / LED / 720p / 60Hz / HDTV"
+        },
+        {
+            "featuresMap": {
+                "Composite A/V": "1 In",
+                "Labor": "1 year limited",
+                "Refresh Rate": "60Hz",
+                "Screen Size": "32\" Class (31.5\" Diag.)",
+                "USB": "1 (Music/Photo)"
+            },
+            "modelID": "32SL410U",
+            "title": "Toshiba 32\" Class (31.5\" Diag.) 720p 60Hz LED-LCD HDTV 32SL410U",
+            "url": "http://www.newegg.com/Product/Product.aspx?Item=N82E16889253265"
+        }
+    ],
+    "KDL40BX420": [
+        {
+            "featuresMap": {
+                "DVI Inputs": "0",
+                "ENERGY STAR Qualified": "No",
+                "Ethernet Port": "No",
+                "Internet Connectable": "No",
+                "Language Options": "English, French, Spanish",
+                "Screen Size Class": "40\"",
+                "Sleep Timer": "No",
+                "USB Port": "Yes",
+                "model": "KDL40BX420"
+            },
+            "modelID": "KDL40BX420",
+            "title": "Sony - BRAVIA / 40\" Class / 1080p / 60Hz / LCD HDTV",
+            "url": "http://www.bestbuy.com/site/Sony+-+BRAVIA+/+40%22+Class+/+1080p+/+60Hz+/+LCD+HDTV/2103531.p;jsessionid=1CC40E633071C552F3AF1017FCA79150.bbolsp-app03-55?id=1218309761761&skuId=2103531"
+        },
+        {
+            "featuresMap": {
+                "Analog Audio": "3 In (1 Side/ 2 Rear)",
+                "Component Video": "1 (Rear / Hybrid)",
+                "Remote Control": "Yes",
+                "Series": "BRAVIA",
+                "model": "KDL40BX420"
+            },
+            "modelID": "KDL40BX420",
+            "title": "Sony BRAVIA 40\" 1080p 60Hz LCD HDTV KDL40BX420",
+            "url": "http://www.newegg.com/Product/Product.aspx?Item=N82E16889252123"
+        }
+    ],
+    "TC-P42X3": [
+        {
+            "featuresMap": {
+                "Aspect Ratio": "16:9",
+                "Box Dimensions": "45 2/7 x 10 4/5 x 29 2/5 inches",
+                "Component Video Inputs": "1",
+                "Composite Inputs": "1",
+                "DLNA": "Yes",
+                "DVI Inputs": "0",
+                "ENERGY STAR Qualified": "No",
+                "Ethernet Port": "Yes",
+                "HDMI Inputs": "2",
+                "Instant Content": "Netflix, CinemaNow, Facebook, Pandora",
+                "Internet Connectable": "Yes",
+                "Language Options": "English, French, Spanish",
+                "Maximum Resolution": "1024 x 768"
+            },
+            "modelID": "TC-P42X3",
+            "title": "Panasonic - 42\" Class / Plasma / 720p / 600Hz / HDTV",
+            "url": "http://www.bestbuy.com/site/Panasonic+-+42%22+Class+/+Plasma+/+720p+/+600Hz+/+HDTV/2120043.p;jsessionid=1CC40E633071C552F3AF1017FCA79150.bbolsp-app03-55?id=1218310005850&skuId=2120043"
+        }
+    ]
+}

@@ -1,0 +1,45 @@
+{
+    "32SL410U": [
+        {
+            "featuresMap": {
+                "title": "abc",
+                "model": "abc",
+                "DVI Inputs": "0",
+                "ENERGY STAR Qualified": "Yes",
+                "Ethernet Port": "No",
+                "Internet Connectable": "No",
+                "Remote Control Type": "Standard",
+                "Screen Size Class": "32\"",
+                "model": "32SL410U",
+                "url": "http://www.newegg.com/site/Toshiba+-+32%22+Class+/+LED+/+720p+/+60Hz+/+HDTV/1998047.p;jsessionid=7F6A764CB00A0B8BB01DC42B153EA24D.bbolsp-app01-05?id=1218305634981&skuId=1998047"
+            },
+            "modelID": "32SL410U",
+            "title": "Toshiba - 32\" Class / LED / 720p / 60Hz / HDTV"
+        },
+        {
+            "featuresMap": {
+                "title": "abc",
+                "model": "abc",
+                "Composite A/V": "1 In",
+                "Labor": "1 year limited",
+                "Refresh Rate": "60Hz",
+                "Screen Size": "32\" Class (31.5\" Diag.)",
+                "USB": "1 (Music/Photo)"
+            },
+            "modelID": "32SL410U",
+            "title": "Toshiba 32\" Class (31.5\" Diag.) 720p 60Hz LED-LCD HDTV 32SL410U",
+            "url": "http://www.newegg.com/Product/Product.aspx?Item=N82E16889253265"
+        }
+    ],
+    "TC-P42X3": [
+        {
+            "featuresMap": {
+                "title": "1024 x 768",
+                "model": "1024 x 768"
+            },
+            "modelID": "TC-P42X3",
+            "title": "Panasonic - 42\" Class / Plasma / 720p / 600Hz / HDTV",
+            "url": "http://www.bestbuy.com/site/Panasonic+-+42%22+Class+/+Plasma+/+720p+/+600Hz+/+HDTV/2120043.p;jsessionid=1CC40E633071C552F3AF1017FCA79150.bbolsp-app03-55?id=1218310005850&skuId=2120043"
+        }
+    ]
+}

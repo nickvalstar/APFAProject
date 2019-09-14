@@ -1,0 +1,1361 @@
+<html>
+<head>
+<title>NickKeyMatchingAlg.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: rgb(0,0,0); font-weight: normal; font-style: normal; }
+.s0 { color: rgb(204,120,50); }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(106,135,89); }
+.s3 { color: rgb(104,151,187); }
+.s4 { color: rgb(128,128,128); }
+.s5 { color: rgb(98,151,85); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#C0C0C0" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+NickKeyMatchingAlg.java</FONT>
+</center></TD></TR></TABLE>
+<pre>
+
+<span class="s0">package </span><span class="s1">com.damirvandic.sparker.students.nick</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">import </span><span class="s1">java.io.FileWriter</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">java.io.IOException</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">com.damirvandic.sparker.core.ProductDesc</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">import </span><span class="s1">com.damirvandic.sparker.msm.TitleAnalyzer</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">com.damirvandic.sparker.msm.TitleAnalyzerImpl</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">com.damirvandic.sparker.util.StringPair</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">com.google.common.primitives.Doubles</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">org.apache.commons.math3.stat.inference.TTest</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">org.slf4j.Logger</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">org.slf4j.LoggerFactory</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">import </span><span class="s1">uk.ac.shef.wit.simmetrics.similaritymetrics.AbstractStringMetric</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">uk.ac.shef.wit.simmetrics.similaritymetrics.QGramsDistance</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">uk.ac.shef.wit.simmetrics.tokenisers.InterfaceTokeniser</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">uk.ac.shef.wit.simmetrics.tokenisers.TokeniserQGram2</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">import </span><span class="s1">java.util.*</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">java.util.regex.Matcher</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">java.util.regex.Pattern</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+</span><span class="s0">public class </span><span class="s1">NickKeyMatchingAlg { 
+    </span><span class="s0">private final </span><span class="s1">Logger log = LoggerFactory.getLogger(getClass())</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private final </span><span class="s1">KolmogorovSmirnovTest km = </span><span class="s0">new </span><span class="s1">KolmogorovSmirnovTest()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private final </span><span class="s1">TTest studentTest = </span><span class="s0">new </span><span class="s1">TTest()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private </span><span class="s1">Pattern leestekenDetector = Pattern.compile(</span><span class="s2">&quot;([a-zA-Z])+&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static </span><span class="s1">Pattern numberDetector = Pattern.compile(</span><span class="s2">&quot;((?:</span><span class="s0">\\</span><span class="s2">d*</span><span class="s0">\\</span><span class="s2">.)?</span><span class="s0">\\</span><span class="s2">d+)&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; alignments = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; alignments2 = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; alignments_test = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; alignments2_test = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static int </span><span class="s1">testing</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static </span><span class="s1">Map&lt;String</span><span class="s0">, </span><span class="s1">Map&gt; keys = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static final </span><span class="s1">Pattern MW_PATTERN = getMWPattern()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static </span><span class="s1">InterfaceTokeniser tokeniser = </span><span class="s0">new </span><span class="s1">TokeniserQGram2()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static </span><span class="s1">AbstractStringMetric metric = </span><span class="s0">new </span><span class="s1">QGramsDistance(tokeniser)</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static int </span><span class="s1">testcount=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">, </span><span class="s1">Double&gt; best_params = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">Set&lt;String&gt;&gt; brands = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">String&gt; brandkeys = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static </span><span class="s1">Map&lt;Integer</span><span class="s0">,</span><span class="s1">ProductInfo&gt; productInfoMap = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public </span><span class="s1">Map&lt;String</span><span class="s0">,</span><span class="s1">String&gt; units = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static int </span><span class="s1">total_counter=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static int </span><span class="s1">msm_counter=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">public static int </span><span class="s1">apfa_counter=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">mu</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">aligned_min</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">title_min</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">keys_rest_weight</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">title_rest_weight</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">epsilon</span><span class="s0">;</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">epsilon2</span><span class="s0">;</span><span class="s1"> 
+ 
+    </span><span class="s0">public </span><span class="s1">NickKeyMatchingAlg(Map&lt;String</span><span class="s0">, </span><span class="s1">Object&gt; conf</span><span class="s0">, </span><span class="s1">Set&lt;ProductDesc&gt; data) { 
+        </span><span class="s0">this</span><span class="s1">.mu = (Double) conf.get(</span><span class="s2">&quot;mu&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.aligned_min = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;aligned_min&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.title_min = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;title_min&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.keys_rest_weight = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;keys_rest_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.title_rest_weight = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;title_rest_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.epsilon = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;epsilon&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">this</span><span class="s1">.epsilon2 = (</span><span class="s0">double</span><span class="s1">) conf.get(</span><span class="s2">&quot;epsilon2&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        computeAnswers(conf</span><span class="s0">, </span><span class="s1">data)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+ 
+ 
+ 
+    </span><span class="s0">private void </span><span class="s1">computeAnswers(Map&lt;String</span><span class="s0">, </span><span class="s1">Object&gt; conf</span><span class="s0">, </span><span class="s1">Set&lt;ProductDesc&gt; data) { 
+ 
+ 
+        </span><span class="s4">//settings</span><span class="s1"> 
+        </span><span class="s0">boolean </span><span class="s1">onebootstrap=</span><span class="s0">false;</span><span class="s1"> 
+        </span><span class="s0">boolean </span><span class="s1">phase0_testing=</span><span class="s0">false;</span><span class="s1"> 
+        </span><span class="s0">boolean </span><span class="s1">onlyphase2=</span><span class="s0">false;</span><span class="s1"> 
+        </span><span class="s4">//set w1 en w2 2x goed. in alg 3</span><span class="s1"> 
+        </span><span class="s4">//settings</span><span class="s1"> 
+ 
+ 
+        System.out.println(</span><span class="s2">&quot;running phase0&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        testcount++</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(data.size()&gt;</span><span class="s3">900</span><span class="s1">){ 
+            testing=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">else</span><span class="s1">{ 
+            testing=</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+        } 
+ 
+        </span><span class="s0">if </span><span class="s1">(onebootstrap==</span><span class="s0">true</span><span class="s1">){ 
+            </span><span class="s0">if</span><span class="s1">(testing==</span><span class="s3">0 </span><span class="s1">&amp; !alignments.isEmpty()){ 
+                System.out.println(</span><span class="s2">&quot;training was already done&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">return;</span><span class="s1"> 
+            } 
+            </span><span class="s0">if</span><span class="s1">(testing==</span><span class="s3">1 </span><span class="s1">&amp; !alignments_test.isEmpty()){ 
+                System.out.println(</span><span class="s2">&quot;testing was already done&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">return;</span><span class="s1"> 
+            } 
+        } 
+ 
+        </span><span class="s0">if </span><span class="s1">(testing==</span><span class="s3">0</span><span class="s1">) 
+            System.out.println(</span><span class="s2">&quot;training&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">else</span><span class="s1"> 
+            System.out.println(</span><span class="s2">&quot;testing&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//initialize:</span><span class="s1"> 
+        keys.clear()</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//todo unit INPUT: (should read this in from csv!)</span><span class="s1"> 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">List&lt;String&gt;&gt; units_input = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;inch&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;inch&quot;</span><span class="s0">,</span><span class="s2">&quot;inches&quot;</span><span class="s0">,</span><span class="s2">&quot;-inch&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;lb&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;lb&quot;</span><span class="s0">,</span><span class="s2">&quot;lbs&quot;</span><span class="s0">,</span><span class="s2">&quot;pound&quot;</span><span class="s0">,</span><span class="s2">&quot;pounds&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;hz&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;hz&quot;</span><span class="s0">,</span><span class="s2">&quot;hertz&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;mwatt&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;mw&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;watt&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;watt&quot;</span><span class="s0">,</span><span class="s2">&quot;w&quot;</span><span class="s0">,</span><span class="s2">&quot;watts&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;volt&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;volt&quot;</span><span class="s0">,</span><span class="s2">&quot;v&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;ms&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;ms&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;nit&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;nit&quot;</span><span class="s0">,</span><span class="s2">&quot;nt&quot;</span><span class="s0">,</span><span class="s2">&quot;cd&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;year&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;year&quot;</span><span class="s0">,</span><span class="s2">&quot;years&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;day&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;day&quot;</span><span class="s0">,</span><span class="s2">&quot;days&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;hour&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;hour&quot;</span><span class="s0">,</span><span class="s2">&quot;hours&quot;</span><span class="s0">,</span><span class="s2">&quot;hrs&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;month&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;month&quot;</span><span class="s0">,</span><span class="s2">&quot;months&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;week&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;week&quot;</span><span class="s0">,</span><span class="s2">&quot;weeks&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;kg&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;kg&quot;</span><span class="s0">,</span><span class="s2">&quot;kilo&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;mm&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;mm&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;degrees&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;degrees&quot;</span><span class="s0">,</span><span class="s2">&quot;degree&quot;</span><span class="s0">,</span><span class="s2">&quot;º&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;dollar&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;$&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;feet&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;feet&quot;</span><span class="s0">,</span><span class="s2">&quot;ft&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;pixels&quot;</span><span class="s0">,</span><span class="s1">Arrays.asList(</span><span class="s2">&quot;p&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;pixels_interlaced&quot;</span><span class="s0">, </span><span class="s1">Arrays.asList(</span><span class="s2">&quot;i&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        units_input.put(</span><span class="s2">&quot;dimension&quot;</span><span class="s0">, </span><span class="s1">Arrays.asList(</span><span class="s2">&quot;d&quot;</span><span class="s0">,</span><span class="s2">&quot;-d&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+        </span><span class="s0">for </span><span class="s1">(String unit_name : units_input.keySet()){ 
+            List&lt;String&gt; unit_values = units_input.get(unit_name)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(String unit_value : unit_values){ 
+                units.put(unit_value</span><span class="s0">,</span><span class="s1">unit_name)</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+        Map&lt;String</span><span class="s0">, </span><span class="s1">Double&gt; webshop_sizes = </span><span class="s0">new </span><span class="s1">HashMap()</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+        </span><span class="s4">//Aggregate per webshop per key all values.</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(ProductDesc p : data) { 
+            </span><span class="s4">//add shop</span><span class="s1"> 
+            String shop = p.shop</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if </span><span class="s1">(!webshop_sizes.containsKey(shop)){ 
+                webshop_sizes.put(p.shop</span><span class="s0">,</span><span class="s3">0.0</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            } 
+            webshop_sizes.put(p.shop</span><span class="s0">,</span><span class="s1">webshop_sizes.get(p.shop)+</span><span class="s3">1.0</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if </span><span class="s1">(!keys.containsKey(shop)){ 
+                keys.put(shop</span><span class="s0">, new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">Key&gt;())</span><span class="s0">;</span><span class="s1"> 
+            } 
+ 
+            </span><span class="s0">for </span><span class="s1">(String feat : p.featuresMap.keySet()){</span><span class="s4">//go through keys</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(feat==</span><span class="s0">null </span><span class="s1">|| feat==</span><span class="s2">&quot;&quot;</span><span class="s1">) 
+                    System.out.println(</span><span class="s2">&quot;empty feat&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if</span><span class="s1">(!keys.get(shop).containsKey(feat)){ 
+                    keys.get(shop).put(feat</span><span class="s0">,new </span><span class="s1">Key(shop</span><span class="s0">,</span><span class="s1">feat))</span><span class="s0">;</span><span class="s1"> 
+                } 
+                Key key = (Key) keys.get(shop).get(feat)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(key==</span><span class="s0">null</span><span class="s1">) 
+                    System.out.println(</span><span class="s2">&quot;empty key&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s4">//add raw value (but without info between brackets)</span><span class="s1"> 
+                String value = p.featuresMap.get(feat)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(value.contains(</span><span class="s2">&quot;(&quot;</span><span class="s1">)){ </span><span class="s4">//everything between brackets is much less important:</span><span class="s1"> 
+                    value = value.substring(</span><span class="s3">0</span><span class="s0">,</span><span class="s1">value.indexOf(</span><span class="s2">&quot;(&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+                } 
+                </span><span class="s0">if </span><span class="s1">(value==</span><span class="s0">null </span><span class="s1">|| value==</span><span class="s2">&quot;&quot;</span><span class="s1">) 
+                    System.out.println(</span><span class="s2">&quot;empty value&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                key.addRawValue(value)</span><span class="s0">;</span><span class="s1"> 
+ 
+                </span><span class="s4">//add splitted and cleaned value</span><span class="s1"> 
+                String[] splits = value 
+                        .replace(</span><span class="s2">&quot;,&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s4">//e.g. in milions. 1,000,000 should be just 1000000</span><span class="s1"> 
+                        .replace(</span><span class="s2">&quot;x&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;$&quot;</span><span class="s0">, </span><span class="s2">&quot;dollar&quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;</span><span class="s0">\&quot;</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;º&quot;</span><span class="s0">,</span><span class="s2">&quot;degrees&quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;/&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;”&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;:&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;~&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                        .replace(</span><span class="s2">&quot;-&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">).split(</span><span class="s2">&quot; +|;&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">for </span><span class="s1">(String waardeSplitted : splits) { 
+                    String foundValue = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                    String foundString = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                    Matcher getallen = numberDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+ 
+                    </span><span class="s4">//System.out.println(waardeSplitted);</span><span class="s1"> 
+                    </span><span class="s4">//System.out.println();</span><span class="s1"> 
+</span><span class="s4">//                    if(waardeSplitted.contains(&quot;lbs.&quot;)){</span><span class="s1"> 
+</span><span class="s4">//                        int j = 1;</span><span class="s1"> 
+</span><span class="s4">//                    }</span><span class="s1"> 
+                    </span><span class="s0">if </span><span class="s1">(getallen.find()) { 
+                        foundValue = findGetallen(getallen)</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">double </span><span class="s1">converted = Double.parseDouble(foundValue)</span><span class="s0">;</span><span class="s1"> 
+                        key.addDoubleValue(converted)</span><span class="s0">;</span><span class="s1"> 
+                        key.productCountDoubles = key.productCountDoubles + </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                        waardeSplitted = waardeSplitted.replaceAll(</span><span class="s2">&quot;</span><span class="s0">\\</span><span class="s2">d&quot;</span><span class="s0">,</span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s0">; </span><span class="s4">//strip the numbers</span><span class="s1"> 
+                    } 
+ 
+                    Matcher strings = leestekenDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s0">if </span><span class="s1">(strings.find()) { 
+                        strings = leestekenDetector.matcher(waardeSplitted)</span><span class="s0">; </span><span class="s4">//renew it</span><span class="s1"> 
+                        foundString = findStrings(strings</span><span class="s0">, </span><span class="s1">foundString)</span><span class="s0">;</span><span class="s1"> 
+ 
+                        </span><span class="s4">//units</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(units.containsKey(foundString)){ 
+                            key.addRawUnit(foundString)</span><span class="s0">;</span><span class="s1"> 
+                            key.addCleanedUnit(units.get(foundString))</span><span class="s0">;</span><span class="s1"> 
+                            key.productCountDoubles = key.productCountDoubles + </span><span class="s3">0.25</span><span class="s0">; </span><span class="s4">//bonus to doubles.</span><span class="s1"> 
+                            </span><span class="s4">//dont add it as a string value, because containing a unit rather suggests we are dealing with a key of type double.</span><span class="s1"> 
+                        } </span><span class="s0">else</span><span class="s1">{ 
+                            key.addStringValue(foundString)</span><span class="s0">;</span><span class="s1"> 
+                            key.productCountStrings = key.productCountStrings + </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                        } 
+                    } 
+                } 
+            } 
+        } 
+ 
+ 
+ 
+        </span><span class="s4">//todo brand INPUT: (should read this in from csv!)</span><span class="s1"> 
+        Set&lt;String&gt; exampleBrands = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(Arrays.asList(</span><span class="s0">new </span><span class="s1">String[]{</span><span class="s2">&quot;samsung&quot;</span><span class="s0">, </span><span class="s2">&quot;philips&quot;</span><span class="s0">, </span><span class="s2">&quot;sony&quot;</span><span class="s0">, </span><span class="s2">&quot;sharp&quot;</span><span class="s0">, </span><span class="s2">&quot;nec&quot;</span><span class="s0">, </span><span class="s2">&quot;hp&quot;</span><span class="s0">, </span><span class="s2">&quot;toshiba&quot;</span><span class="s0">, </span><span class="s2">&quot;hisense&quot;</span><span class="s0">, </span><span class="s2">&quot;sony&quot;</span><span class="s0">, </span><span class="s2">&quot;lg&quot;</span><span class="s0">, </span><span class="s2">&quot;sanyo&quot;</span><span class="s0">, </span><span class="s2">&quot;coby&quot;</span><span class="s0">, </span><span class="s2">&quot;panasonic&quot;</span><span class="s0">, </span><span class="s2">&quot;sansui&quot;</span><span class="s0">, </span><span class="s2">&quot;vizio&quot;</span><span class="s0">, </span><span class="s2">&quot;viewsonic&quot;</span><span class="s0">, </span><span class="s2">&quot;sunbritetv&quot;</span><span class="s0">, </span><span class="s2">&quot;haier&quot;</span><span class="s0">, </span><span class="s2">&quot;optoma&quot;</span><span class="s0">, </span><span class="s2">&quot;proscan&quot;</span><span class="s0">, </span><span class="s2">&quot;jvc&quot;</span><span class="s0">, </span><span class="s2">&quot;pyle&quot;</span><span class="s0">, </span><span class="s2">&quot;sceptre&quot;</span><span class="s0">, </span><span class="s2">&quot;magnavox&quot;</span><span class="s0">, </span><span class="s2">&quot;mitsubishi&quot;</span><span class="s0">, </span><span class="s2">&quot;supersonic&quot;</span><span class="s0">, </span><span class="s2">&quot;compaq&quot;</span><span class="s0">, </span><span class="s2">&quot;hannspree&quot;</span><span class="s0">, </span><span class="s2">&quot;upstar&quot;</span><span class="s0">, </span><span class="s2">&quot;seiki&quot;</span><span class="s0">, </span><span class="s2">&quot;rca&quot;</span><span class="s0">, </span><span class="s2">&quot;craig&quot;</span><span class="s0">, </span><span class="s2">&quot;affinity&quot;</span><span class="s0">, </span><span class="s2">&quot;naxa&quot;</span><span class="s0">, </span><span class="s2">&quot;westinghouse&quot;</span><span class="s0">, </span><span class="s2">&quot;epson&quot;</span><span class="s0">, </span><span class="s2">&quot;elo&quot;</span><span class="s0">, </span><span class="s2">&quot;sigmac&quot;</span><span class="s1">}))</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+        </span><span class="s4">//calculate individual metrics per webshop per key (coverage, diversity,datatype,units)</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String webshop : keys.keySet()){ 
+            </span><span class="s0">int </span><span class="s1">highestbrandCount=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            Key brandkey = </span><span class="s0">null;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(Object keyobject : keys.get(webshop).values()){ 
+                Key key = (Key) keyobject</span><span class="s0">;</span><span class="s1"> 
+                key.calculateMetrics(webshop_sizes</span><span class="s0">,</span><span class="s1">units</span><span class="s0">, </span><span class="s1">exampleBrands)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s4">//which key contains the brands?</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(key.brandcount&gt;highestbrandCount){ 
+                    highestbrandCount = key.brandcount</span><span class="s0">;</span><span class="s1"> 
+                    brandkey = key</span><span class="s0">;</span><span class="s1"> 
+                } 
+            } 
+            </span><span class="s4">//gather brands per webshop</span><span class="s1"> 
+            </span><span class="s0">if </span><span class="s1">(highestbrandCount&gt;=</span><span class="s3">0</span><span class="s1">){ 
+                brands.put(webshop</span><span class="s0">,new </span><span class="s1">HashSet&lt;String&gt;(brandkey.possibleBrands))</span><span class="s0">;</span><span class="s1"> 
+                brandkeys.put(webshop</span><span class="s0">,</span><span class="s1">brandkey.key_name)</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+        </span><span class="s0">if </span><span class="s1">(phase0_testing!=</span><span class="s0">true</span><span class="s1">){ 
+            </span><span class="s4">//int good = 0;</span><span class="s1"> 
+            </span><span class="s4">//int bad = 0;</span><span class="s1"> 
+            </span><span class="s4">//PRODUCT_INFO:  voor train en test</span><span class="s1"> 
+            </span><span class="s4">//todo (should read this in from csv!)</span><span class="s1"> 
+            String[] extendedBrandlist = {</span><span class="s2">&quot;DYNEX&quot;</span><span class="s0">,</span><span class="s2">&quot;GPX&quot;</span><span class="s0">,</span><span class="s2">&quot;VENTURER&quot;</span><span class="s0">,</span><span class="s2">&quot;TCL&quot;</span><span class="s0">,</span><span class="s2">&quot;AZEND&quot;</span><span class="s0">,</span><span class="s2">&quot;HITEKER&quot;</span><span class="s0">,</span><span class="s2">&quot;VIORE&quot;</span><span class="s0">,</span><span class="s2">&quot;CONTEX&quot;</span><span class="s0">,</span><span class="s2">&quot;INSIGNIA&quot;</span><span class="s0">,</span><span class="s2">&quot;MITSUBISHI&quot;</span><span class="s0">,</span><span class="s2">&quot;JVC&quot;</span><span class="s0">,</span><span class="s2">&quot;PROSCAN&quot;</span><span class="s0">,</span><span class="s2">&quot;HISENSE&quot;</span><span class="s0">,</span><span class="s2">&quot;UPSTAR&quot;</span><span class="s0">,</span><span class="s2">&quot;WESTINGHOUSE&quot;</span><span class="s0">,</span><span class="s2">&quot;SANYO&quot;</span><span class="s0">,</span><span class="s2">&quot;SIGMAC&quot;</span><span class="s0">,</span><span class="s2">&quot;RCA&quot;</span><span class="s0">,</span><span class="s2">&quot;HANNSPREE&quot;</span><span class="s0">,</span><span class="s2">&quot;SCEPTRE&quot;</span><span class="s0">,</span><span class="s2">&quot;PHILIPS&quot;</span><span class="s0">,</span><span class="s2">&quot;SAMSUNG&quot;</span><span class="s0">,</span><span class="s2">&quot;NEC&quot;</span><span class="s0">,</span><span class="s2">&quot;LG&quot;</span><span class="s0">,</span><span class="s2">&quot;PANASONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;SANSUI&quot;</span><span class="s0">,</span><span class="s2">&quot;COBY&quot;</span><span class="s0">,</span><span class="s2">&quot;VIZIO&quot;</span><span class="s0">,</span><span class="s2">&quot;VIEWSONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;TOSHIBA&quot;</span><span class="s0">,</span><span class="s2">&quot;SUNBRITETV&quot;</span><span class="s0">,</span><span class="s2">&quot;VIZIO&quot;</span><span class="s0">,</span><span class="s2">&quot;SHARP&quot;</span><span class="s0">,</span><span class="s2">&quot;HAIER&quot;</span><span class="s0">,</span><span class="s2">&quot;SUPERSONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;JVC&quot;</span><span class="s0">,</span><span class="s2">&quot;PYLE&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNAVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;COMPAQ&quot;</span><span class="s0">,</span><span class="s2">&quot;HANNSPREE&quot;</span><span class="s0">,</span><span class="s2">&quot;SONY&quot;</span><span class="s0">,</span><span class="s2">&quot;AFFINITY&quot;</span><span class="s0">,</span><span class="s2">&quot;SEIKI&quot;</span><span class="s0">,</span><span class="s2">&quot;NAXA&quot;</span><span class="s0">,</span><span class="s2">&quot;EPSON&quot;</span><span class="s0">,</span><span class="s2">&quot;HP&quot;</span><span class="s0">,</span><span class="s2">&quot;ELO&quot;</span><span class="s0">,</span><span class="s2">&quot;ACEAWTASD&quot;</span><span class="s0">,</span><span class="s2">&quot;ACER&quot;</span><span class="s0">,</span><span class="s2">&quot;ADMIRAL&quot;</span><span class="s0">,</span><span class="s2">&quot;ADVENT&quot;</span><span class="s0">,</span><span class="s2">&quot;ADYSON&quot;</span><span class="s0">,</span><span class="s2">&quot;AIWA&quot;</span><span class="s0">,</span><span class="s2">&quot;AKAI&quot;</span><span class="s0">,</span><span class="s2">&quot;AKURRA&quot;</span><span class="s0">,</span><span class="s2">&quot;ALBA&quot;</span><span class="s0">,</span><span class="s2">&quot;ALLORGAN&quot;</span><span class="s0">,</span><span class="s2">&quot;AMIGO VIDEO&quot;</span><span class="s0">,</span><span class="s2">&quot;AMPLIVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;AMSTRAD&quot;</span><span class="s0">,</span><span class="s2">&quot;ANDREA ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;ANITECH&quot;</span><span class="s0">,</span><span class="s2">&quot;ARCAM&quot;</span><span class="s0">,</span><span class="s2">&quot;ARENA&quot;</span><span class="s0">,</span><span class="s2">&quot;ARGOSY&quot;</span><span class="s0">,</span><span class="s2">&quot;ASTOR&quot;</span><span class="s0">,</span><span class="s2">&quot;ASUKA&quot;</span><span class="s0">,</span><span class="s2">&quot;ATLANTIC&quot;</span><span class="s0">,</span><span class="s2">&quot;ATWATER TELEVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;AUDAR&quot;</span><span class="s0">,</span><span class="s2">&quot;AUDIOSONIC &quot;</span><span class="s0">,</span><span class="s2">&quot;AUDIOVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;AWA&quot;</span><span class="s0">,</span><span class="s2">&quot;BACE TELEVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;BAIRD&quot;</span><span class="s0">,</span><span class="s2">&quot;BANG &amp; OLUFSEN&quot;</span><span class="s0">,</span><span class="s2">&quot;BASE&quot;</span><span class="s0">,</span><span class="s2">&quot;BAUR&quot;</span><span class="s0">,</span><span class="s2">&quot;BAYCREST &quot;</span><span class="s0">,</span><span class="s2">&quot;BEKO&quot;</span><span class="s0">,</span><span class="s2">&quot;BENQ&quot;</span><span class="s0">,</span><span class="s2">&quot;BELL TELEVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;BEON&quot;</span><span class="s0">,</span><span class="s2">&quot;BINATONE&quot;</span><span class="s0">,</span><span class="s2">&quot;BISA&quot;</span><span class="s0">,</span><span class="s2">&quot;BLAUPUNKT&quot;</span><span class="s0">,</span><span class="s2">&quot;BLUE SKY&quot;</span><span class="s0">,</span><span class="s2">&quot;BLUE STAR&quot;</span><span class="s0">,</span><span class="s2">&quot;BONDSTEC&quot;</span><span class="s0">,</span><span class="s2">&quot;BPL&quot;</span><span class="s0">,</span><span class="s2">&quot;BRANDT&quot;</span><span class="s0">,</span><span class="s2">&quot;BRIONVEGA&quot;</span><span class="s0">,</span><span class="s2">&quot;BRITANNIA&quot;</span><span class="s0">,</span><span class="s2">&quot;BSR&quot;</span><span class="s0">,</span><span class="s2">&quot;BTC&quot;</span><span class="s0">,</span><span class="s2">&quot;BUSH RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;CALBEST ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;CANDLE&quot;</span><span class="s0">,</span><span class="s2">&quot;CAPEHART ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;CARREFOUR&quot;</span><span class="s0">,</span><span class="s2">&quot;CASCADE&quot;</span><span class="s0">,</span><span class="s2">&quot;CATHAY&quot;</span><span class="s0">,</span><span class="s2">&quot;CELLO&quot;</span><span class="s0">,</span><span class="s2">&quot;CENTURION&quot;</span><span class="s0">,</span><span class="s2">&quot;CGE[DISAMBIGUATION NEEDED]&quot;</span><span class="s0">,</span><span class="s2">&quot;CHANGHONG[DISAMBIGUATION NEEDED]&quot;</span><span class="s0">,</span><span class="s2">&quot;CHIMEI&quot;</span><span class="s0">,</span><span class="s2">&quot;CIMLINE&quot;</span><span class="s0">,</span><span class="s2">&quot;CITIZEN&quot;</span><span class="s0">,</span><span class="s2">&quot;CLAIRETONE ELECTRIC CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;CLARIVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;CLATRONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;COBY&quot;</span><span class="s0">,</span><span class="s2">&quot;COLONIAL RADIO &quot;</span><span class="s0">,</span><span class="s2">&quot;COLOR ELECTRONICS CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;CONAR INSTRUMENTS&quot;</span><span class="s0">,</span><span class="s2">&quot;CONDOR&quot;</span><span class="s0">,</span><span class="s2">&quot;CONRAC &quot;</span><span class="s0">,</span><span class="s2">&quot;CONRAC &quot;</span><span class="s0">,</span><span class="s2">&quot;CONTEC&quot;</span><span class="s0">,</span><span class="s2">&quot;CONTINENTAL EDISON&quot;</span><span class="s0">,</span><span class="s2">&quot;CORTRON INDUSTRIES &quot;</span><span class="s0">,</span><span class="s2">&quot;COSSOR&quot;</span><span class="s0">,</span><span class="s2">&quot;CROWN&quot;</span><span class="s0">,</span><span class="s2">&quot;CRYSTAL&quot;</span><span class="s0">,</span><span class="s2">&quot;CTC&quot;</span><span class="s0">,</span><span class="s2">&quot;CURTIS MATHES CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;CYBERTRON&quot;</span><span class="s0">,</span><span class="s2">&quot;DAEWOO&quot;</span><span class="s0">,</span><span class="s2">&quot;DAINICHI&quot;</span><span class="s0">,</span><span class="s2">&quot;DANSAI&quot;</span><span class="s0">,</span><span class="s2">&quot;DAYTON&quot;</span><span class="s0">,</span><span class="s2">&quot;GRAAF&quot;</span><span class="s0">,</span><span class="s2">&quot;DECCA&quot;</span><span class="s0">,</span><span class="s2">&quot;DECCACOLOUR &quot;</span><span class="s0">,</span><span class="s2">&quot;DEFIANT&quot;</span><span class="s0">,</span><span class="s2">&quot;DELL&quot;</span><span class="s0">,</span><span class="s2">&quot;DIAMOND VISION&quot;</span><span class="s0">,</span><span class="s2">&quot;DELMONICO INTERNATIONAL CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;DIBOSS&quot;</span><span class="s0">,</span><span class="s2">&quot;DIXI&quot;</span><span class="s0">,</span><span class="s2">&quot;DUMONT LABORATORIES &quot;</span><span class="s0">,</span><span class="s2">&quot;DUMONT &quot;</span><span class="s0">,</span><span class="s2">&quot;DURABRAND &quot;</span><span class="s0">,</span><span class="s2">&quot;DYANORA &quot;</span><span class="s0">,</span><span class="s2">&quot;DYNATRON&quot;</span><span class="s0">,</span><span class="s2">&quot;EKCO&quot;</span><span class="s0">,</span><span class="s2">&quot;ELBE&quot;</span><span class="s0">,</span><span class="s2">&quot;ELECTROHOME&quot;</span><span class="s0">,</span><span class="s2">&quot;ELEMENT ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;ELIN&quot;</span><span class="s0">,</span><span class="s2">&quot;ELITE&quot;</span><span class="s0">,</span><span class="s2">&quot;ELTA&quot;</span><span class="s0">,</span><span class="s2">&quot;EMERSON RADIO AND PHONOGRAPH&quot;</span><span class="s0">,</span><span class="s2">&quot;EMERSON &quot;</span><span class="s0">,</span><span class="s2">&quot;EMI&quot;</span><span class="s0">,</span><span class="s2">&quot;ERRES&quot;</span><span class="s0">,</span><span class="s2">&quot;EXPERT&quot;</span><span class="s0">,</span><span class="s2">&quot;FARNSWORTH TELEVISION AND RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;FERGUSON ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;FERRANTI&quot;</span><span class="s0">,</span><span class="s2">&quot;FIDELITY RADIO &quot;</span><span class="s0">,</span><span class="s2">&quot;FINLANDIA&quot;</span><span class="s0">,</span><span class="s2">&quot;FINLUX&quot;</span><span class="s0">,</span><span class="s2">&quot;FIRSTLINE&quot;</span><span class="s0">,</span><span class="s2">&quot;FISHER ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;FLINT&quot;</span><span class="s0">,</span><span class="s2">&quot;FORMENTI&quot;</span><span class="s0">,</span><span class="s2">&quot;FRONTECH &quot;</span><span class="s0">,</span><span class="s2">&quot;FUJITSU&quot;</span><span class="s0">,</span><span class="s2">&quot;FUNAI ELECTRIC&quot;</span><span class="s0">,</span><span class="s2">&quot;GELOSO&quot;</span><span class="s0">,</span><span class="s2">&quot;GENERAL ELECTRIC&quot;</span><span class="s0">,</span><span class="s2">&quot;GENERAL ELECTRIC COMPANY PLC &quot;</span><span class="s0">,</span><span class="s2">&quot;GELOSO&quot;</span><span class="s0">,</span><span class="s2">&quot;GENEXXA&quot;</span><span class="s0">,</span><span class="s2">&quot;GOLDSTAR&quot;</span><span class="s0">,</span><span class="s2">&quot;GOODMANS INDUSTRIES&quot;</span><span class="s0">,</span><span class="s2">&quot;GORENJE&quot;</span><span class="s0">,</span><span class="s2">&quot;GPM&quot;</span><span class="s0">,</span><span class="s2">&quot;GRADIENTE&quot;</span><span class="s0">,</span><span class="s2">&quot;GRAETZ&quot;</span><span class="s0">,</span><span class="s2">&quot;GRANADA&quot;</span><span class="s0">,</span><span class="s2">&quot;GRANDIN&quot;</span><span class="s0">,</span><span class="s2">&quot;GRUNDIG&quot;</span><span class="s0">,</span><span class="s2">&quot;HANNSPREE&quot;</span><span class="s0">,</span><span class="s2">&quot;HANSEATIC&quot;</span><span class="s0">,</span><span class="s2">&quot;HANTAREX&quot;</span><span class="s0">,</span><span class="s2">&quot;HARVARD INTERNATIONAL&quot;</span><span class="s0">,</span><span class="s2">&quot;HARVEY INDUSTRIES&quot;</span><span class="s0">,</span><span class="s2">&quot;HCM&quot;</span><span class="s0">,</span><span class="s2">&quot;HEALING&quot;</span><span class="s0">,</span><span class="s2">&quot;HEATH COMPANY/HEATHKIT&quot;</span><span class="s0">,</span><span class="s2">&quot;HINARI DOMESTIC APPLICANES&quot;</span><span class="s0">,</span><span class="s2">&quot;HISAWA&quot;</span><span class="s0">,</span><span class="s2">&quot;HMV&quot;</span><span class="s0">,</span><span class="s2">&quot;HISENSE[DISAMBIGUATION NEEDED]&quot;</span><span class="s0">,</span><span class="s2">&quot;HITACHI, LTD.&quot;</span><span class="s0">,</span><span class="s2">&quot;HOFFMAN TELEVISION &quot;</span><span class="s0">,</span><span class="s2">&quot;HOWARD RADIO &quot;</span><span class="s0">,</span><span class="s2">&quot;HUANYU&quot;</span><span class="s0">,</span><span class="s2">&quot;HYPSON&quot;</span><span class="s0">,</span><span class="s2">&quot;ICE&quot;</span><span class="s0">,</span><span class="s2">&quot;ICES&quot;</span><span class="s0">,</span><span class="s2">&quot;ITS&quot;</span><span class="s0">,</span><span class="s2">&quot;ITT CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;ITT-KB &quot;</span><span class="s0">,</span><span class="s2">&quot;ITT-SEL &quot;</span><span class="s0">,</span><span class="s2">&quot;IMPERIAL&quot;</span><span class="s0">,</span><span class="s2">&quot;INDIANA&quot;</span><span class="s0">,</span><span class="s2">&quot;INGELEN&quot;</span><span class="s0">,</span><span class="s2">&quot;INNO HIT&quot;</span><span class="s0">,</span><span class="s2">&quot;INTERFUNK&quot;</span><span class="s0">,</span><span class="s2">&quot;INTERVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;ISUKAI&quot;</span><span class="s0">,</span><span class="s2">&quot;IZUMI&quot;</span><span class="s0">,</span><span class="s2">&quot;JENSEN LOUDSPEAKERS&quot;</span><span class="s0">,</span><span class="s2">&quot;JMB&quot;</span><span class="s0">,</span><span class="s2">&quot;JVC&quot;</span><span class="s0">,</span><span class="s2">&quot;KAISUI&quot;</span><span class="s0">,</span><span class="s2">&quot;KAMACROWN&quot;</span><span class="s0">,</span><span class="s2">&quot;KANE ELECTRONICS CORPORATION&quot;</span><span class="s0">,</span><span class="s2">&quot;KAPSCH&quot;</span><span class="s0">,</span><span class="s2">&quot;KATHREIN&quot;</span><span class="s0">,</span><span class="s2">&quot;KENDO&quot;</span><span class="s0">,</span><span class="s2">&quot;KENT TELEVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;KINGSLEY&quot;</span><span class="s0">,</span><span class="s2">&quot;KLOSS VIDEO&quot;</span><span class="s0">,</span><span class="s2">&quot;KNEISSEL&quot;</span><span class="s0">,</span><span class="s2">&quot;KOGAN&quot;</span><span class="s0">,</span><span class="s2">&quot;KOLSTER-BRANDES&quot;</span><span class="s0">,</span><span class="s2">&quot;KONKA&quot;</span><span class="s0">,</span><span class="s2">&quot;KORPEL&quot;</span><span class="s0">,</span><span class="s2">&quot;KOYODA&quot;</span><span class="s0">,</span><span class="s2">&quot;LANIX&quot;</span><span class="s0">,</span><span class="s2">&quot;LEYCO&quot;</span><span class="s0">,</span><span class="s2">&quot;LG ELECTRONICS &quot;</span><span class="s0">,</span><span class="s2">&quot;LIESENKÖTTER &quot;</span><span class="s0">,</span><span class="s2">&quot;LLOYDS&quot;</span><span class="s0">,</span><span class="s2">&quot;LOEWE AG&quot;</span><span class="s0">,</span><span class="s2">&quot;LUMA&quot;</span><span class="s0">,</span><span class="s2">&quot;LUXOR&quot;</span><span class="s0">,</span><span class="s2">&quot;MTC&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNADYNE&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNAFON&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNASONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNAVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;MAGNAVOX &quot;</span><span class="s0">,</span><span class="s2">&quot;MANETH&quot;</span><span class="s0">,</span><span class="s2">&quot;MARANTZ&quot;</span><span class="s0">,</span><span class="s2">&quot;MARCONIPHONE&quot;</span><span class="s0">,</span><span class="s2">&quot;MARK&quot;</span><span class="s0">,</span><span class="s2">&quot;MATSUI&quot;</span><span class="s0">,</span><span class="s2">&quot;MATTISON ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;MCMICHAEL RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;MEDIATOR &quot;</span><span class="s0">,</span><span class="s2">&quot;MEMOREX&quot;</span><span class="s0">,</span><span class="s2">&quot;MICROMAX&quot;</span><span class="s0">,</span><span class="s2">&quot;MERCURY-PACIFIC&quot;</span><span class="s0">,</span><span class="s2">&quot;METZ&quot;</span><span class="s0">,</span><span class="s2">&quot;MINERVA&quot;</span><span class="s0">,</span><span class="s2">&quot;MINOKA&quot;</span><span class="s0">,</span><span class="s2">&quot;MIRC ELECTRONICS &quot;</span><span class="s0">,</span><span class="s2">&quot;MITSUBISHI&quot;</span><span class="s0">,</span><span class="s2">&quot;MIVAR&quot;</span><span class="s0">,</span><span class="s2">&quot;MOTOROLA&quot;</span><span class="s0">,</span><span class="s2">&quot;MULTITECH &quot;</span><span class="s0">,</span><span class="s2">&quot;MUNTZ &quot;</span><span class="s0">,</span><span class="s2">&quot;MURPHY RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;NEC&quot;</span><span class="s0">,</span><span class="s2">&quot;NECKERMANN&quot;</span><span class="s0">,</span><span class="s2">&quot;NELCO &quot;</span><span class="s0">,</span><span class="s2">&quot;NEI&quot;</span><span class="s0">,</span><span class="s2">&quot;NETTV&quot;</span><span class="s0">,</span><span class="s2">&quot;NIKKAI&quot;</span><span class="s0">,</span><span class="s2">&quot;NOBLIKO&quot;</span><span class="s0">,</span><span class="s2">&quot;NOKIA &quot;</span><span class="s0">,</span><span class="s2">&quot;NORDMENDE&quot;</span><span class="s0">,</span><span class="s2">&quot;NORTH AMERICAN AUDIO, INC.&quot;</span><span class="s0">,</span><span class="s2">&quot;OLYMPIC RADIO AND TELEVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;OCEANIC&quot;</span><span class="s0">,</span><span class="s2">&quot;ONIDA&quot;</span><span class="s0">,</span><span class="s2">&quot;ONWA&quot;</span><span class="s0">,</span><span class="s2">&quot;ORION &quot;</span><span class="s0">,</span><span class="s2">&quot;ORION &quot;</span><span class="s0">,</span><span class="s2">&quot;OSAKI&quot;</span><span class="s0">,</span><span class="s2">&quot;OSO&quot;</span><span class="s0">,</span><span class="s2">&quot;OSUME&quot;</span><span class="s0">,</span><span class="s2">&quot;OTAKE&quot;</span><span class="s0">,</span><span class="s2">&quot;OTTO VERSAND&quot;</span><span class="s0">,</span><span class="s2">&quot;PACKARD BELL, TELEDYNE PACKARD BELL&quot;</span><span class="s0">,</span><span class="s2">&quot;PALLADIUM&quot;</span><span class="s0">,</span><span class="s2">&quot;PANAMA&quot;</span><span class="s0">,</span><span class="s2">&quot;MATSUSHITA &quot;</span><span class="s0">,</span><span class="s2">&quot;PATHE CINEMA&quot;</span><span class="s0">,</span><span class="s2">&quot;PATHE MARCONI&quot;</span><span class="s0">,</span><span class="s2">&quot;PAUSA&quot;</span><span class="s0">,</span><span class="s2">&quot;PERDIO&quot;</span><span class="s0">,</span><span class="s2">&quot;PETO SCOTT&quot;</span><span class="s0">,</span><span class="s2">&quot;PHILCO &quot;</span><span class="s0">,</span><span class="s2">&quot;PHILIPS&quot;</span><span class="s0">,</span><span class="s2">&quot;PHILMORE MANUFACTURING&quot;</span><span class="s0">,</span><span class="s2">&quot;PHONOLA&quot;</span><span class="s0">,</span><span class="s2">&quot;PILOT RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;PILOT RADIO CORPORATION &quot;</span><span class="s0">,</span><span class="s2">&quot;PIONEER ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;PLANAR SYSTEMS&quot;</span><span class="s0">,</span><span class="s2">&quot;POLAROID&quot;</span><span class="s0">,</span><span class="s2">&quot;PROFEX&quot;</span><span class="s0">,</span><span class="s2">&quot;PRIMA&quot;</span><span class="s0">,</span><span class="s2">&quot;PROLINE&quot;</span><span class="s0">,</span><span class="s2">&quot;PROSCAN &quot;</span><span class="s0">,</span><span class="s2">&quot;PROTECH&quot;</span><span class="s0">,</span><span class="s2">&quot;PULSER &quot;</span><span class="s0">,</span><span class="s2">&quot;QUASAR&quot;</span><span class="s0">,</span><span class="s2">&quot;PYE&quot;</span><span class="s0">,</span><span class="s2">&quot;PYXSCAPE&quot;</span><span class="s0">,</span><span class="s2">&quot;QUELLE&quot;</span><span class="s0">,</span><span class="s2">&quot;QUESTA&quot;</span><span class="s0">,</span><span class="s2">&quot;REI&quot;</span><span class="s0">,</span><span class="s2">&quot;RADIOLA&quot;</span><span class="s0">,</span><span class="s2">&quot;RADIOLA &quot;</span><span class="s0">,</span><span class="s2">&quot;RADIOMARELLI&quot;</span><span class="s0">,</span><span class="s2">&quot;RADIOSHACK&quot;</span><span class="s0">,</span><span class="s2">&quot;RANK ARENA&quot;</span><span class="s0">,</span><span class="s2">&quot;RAVENSWOOD &quot;</span><span class="s0">,</span><span class="s2">&quot;RAULAND BORG&quot;</span><span class="s0">,</span><span class="s2">&quot;RBM&quot;</span><span class="s0">,</span><span class="s2">&quot;RCA&quot;</span><span class="s0">,</span><span class="s2">&quot;REALISTIC&quot;</span><span class="s0">,</span><span class="s2">&quot;REDIFFUSION&quot;</span><span class="s0">,</span><span class="s2">&quot;REGENTONE&quot;</span><span class="s0">,</span><span class="s2">&quot;REVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;REX&quot;</span><span class="s0">,</span><span class="s2">&quot;RFT &quot;</span><span class="s0">,</span><span class="s2">&quot;RGD &quot;</span><span class="s0">,</span><span class="s2">&quot;ROADSTAR &quot;</span><span class="s0">,</span><span class="s2">&quot;ROLLS&quot;</span><span class="s0">,</span><span class="s2">&quot;SABA&quot;</span><span class="s0">,</span><span class="s2">&quot;SACCS&quot;</span><span class="s0">,</span><span class="s2">&quot;SAISHO&quot;</span><span class="s0">,</span><span class="s2">&quot;SALORA&quot;</span><span class="s0">,</span><span class="s2">&quot;SALORA INTERNATIONAL&quot;</span><span class="s0">,</span><span class="s2">&quot;SAMBERS&quot;</span><span class="s0">,</span><span class="s2">&quot;SAMPO CORP. OF AMERICA&quot;</span><span class="s0">,</span><span class="s2">&quot;SAMSUNG&quot;</span><span class="s0">,</span><span class="s2">&quot;SANABRIA TELEVISION CORPORATION &quot;</span><span class="s0">,</span><span class="s2">&quot;SANDRA&quot;</span><span class="s0">,</span><span class="s2">&quot;SANSUI&quot;</span><span class="s0">,</span><span class="s2">&quot;SANYO&quot;</span><span class="s0">,</span><span class="s2">&quot;SBR&quot;</span><span class="s0">,</span><span class="s2">&quot;SCHAUB LORENZ&quot;</span><span class="s0">,</span><span class="s2">&quot;SCHNEIDER ELECTRIC&quot;</span><span class="s0">,</span><span class="s2">&quot;SCHNEIDER &quot;</span><span class="s0">,</span><span class="s2">&quot;SCHNEIDER &quot;</span><span class="s0">,</span><span class="s2">&quot;SEARS &quot;</span><span class="s0">,</span><span class="s2">&quot;SEG&quot;</span><span class="s0">,</span><span class="s2">&quot;SEI&quot;</span><span class="s0">,</span><span class="s2">&quot;SEI-SINUDYNE&quot;</span><span class="s0">,</span><span class="s2">&quot;SEIKI DIGITAL&quot;</span><span class="s0">,</span><span class="s2">&quot;SELCO &quot;</span><span class="s0">,</span><span class="s2">&quot;SÈLECO&quot;</span><span class="s0">,</span><span class="s2">&quot;SENTRA&quot;</span><span class="s0">,</span><span class="s2">&quot;SETCHELL CARLSON&quot;</span><span class="s0">,</span><span class="s2">&quot;SEURA[2]&quot;</span><span class="s0">,</span><span class="s2">&quot;SHARP&quot;</span><span class="s0">,</span><span class="s2">&quot;SHORAI&quot;</span><span class="s0">,</span><span class="s2">&quot;SIAREM&quot;</span><span class="s0">,</span><span class="s2">&quot;CURTISYOUNG&quot;</span><span class="s0">,</span><span class="s2">&quot;SIEMENS AG&quot;</span><span class="s0">,</span><span class="s2">&quot;SILO DIGITAL&quot;</span><span class="s0">,</span><span class="s2">&quot;SILVER&quot;</span><span class="s0">,</span><span class="s2">&quot;SILVERTONE - &quot;</span><span class="s0">,</span><span class="s2">&quot;SINUDYNE&quot;</span><span class="s0">,</span><span class="s2">&quot;SKYWORTH[DISAMBIGUATION NEEDED]&quot;</span><span class="s0">,</span><span class="s2">&quot;SOBELL&quot;</span><span class="s0">,</span><span class="s2">&quot;SOLAVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;SONITRON&quot;</span><span class="s0">,</span><span class="s2">&quot;SONOKO&quot;</span><span class="s0">,</span><span class="s2">&quot;SONOLOR&quot;</span><span class="s0">,</span><span class="s2">&quot;SONORA&quot;</span><span class="s0">,</span><span class="s2">&quot;SONTEC&quot;</span><span class="s0">,</span><span class="s2">&quot;SONY&quot;</span><span class="s0">,</span><span class="s2">&quot;SOYO&quot;</span><span class="s0">,</span><span class="s2">&quot;SOUNDWAVE&quot;</span><span class="s0">,</span><span class="s2">&quot;STANDARD&quot;</span><span class="s0">,</span><span class="s2">&quot;STERN&quot;</span><span class="s0">,</span><span class="s2">&quot;STROMBERG CARLSON&quot;</span><span class="s0">,</span><span class="s2">&quot;STEWART-WARNER&quot;</span><span class="s0">,</span><span class="s2">&quot;SUNLITE TV&quot;</span><span class="s0">,</span><span class="s2">&quot;SUNKAI&quot;</span><span class="s0">,</span><span class="s2">&quot;SUSUMU&quot;</span><span class="s0">,</span><span class="s2">&quot;SUPRA&quot;</span><span class="s0">,</span><span class="s2">&quot;SYLVANIA&quot;</span><span class="s0">,</span><span class="s2">&quot;SYMPHONIC ELECTRONIC CORP&quot;</span><span class="s0">,</span><span class="s2">&quot;SYMPHONIC RADIO AND ELECTRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;SYSLINE&quot;</span><span class="s0">,</span><span class="s2">&quot;TANDY&quot;</span><span class="s0">,</span><span class="s2">&quot;TASHIKO&quot;</span><span class="s0">,</span><span class="s2">&quot;TATUNG COMPANY&quot;</span><span class="s0">,</span><span class="s2">&quot;TCL[DISAMBIGUATION NEEDED]&quot;</span><span class="s0">,</span><span class="s2">&quot;TEC&quot;</span><span class="s0">,</span><span class="s2">&quot;TECH-MASTER&quot;</span><span class="s0">,</span><span class="s2">&quot;TECHNEMA&quot;</span><span class="s0">,</span><span class="s2">&quot;TECHNICS&quot;</span><span class="s0">,</span><span class="s2">&quot;TECHNISAT&quot;</span><span class="s0">,</span><span class="s2">&quot;TECNIMAGEN &quot;</span><span class="s0">,</span><span class="s2">&quot;TECHNIKA&quot;</span><span class="s0">,</span><span class="s2">&quot;TECO&quot;</span><span class="s0">,</span><span class="s2">&quot;TELEAVIA&quot;</span><span class="s0">,</span><span class="s2">&quot;TELEFUNKEN&quot;</span><span class="s0">,</span><span class="s2">&quot;TELEMEISTER&quot;</span><span class="s0">,</span><span class="s2">&quot;TELEQUIP&quot;</span><span class="s0">,</span><span class="s2">&quot;TELETECH&quot;</span><span class="s0">,</span><span class="s2">&quot;TELETON&quot;</span><span class="s0">,</span><span class="s2">&quot;TELETRONICS&quot;</span><span class="s0">,</span><span class="s2">&quot;TENSAI&quot;</span><span class="s0">,</span><span class="s2">&quot;TEXET&quot;</span><span class="s0">,</span><span class="s2">&quot;THOMSON SA &quot;</span><span class="s0">,</span><span class="s2">&quot;THORN ELECTRICAL INDUSTRIES&quot;</span><span class="s0">,</span><span class="s2">&quot;THORN EMI&quot;</span><span class="s0">,</span><span class="s2">&quot;TMA&quot;</span><span class="s0">,</span><span class="s2">&quot;TOMASHI&quot;</span><span class="s0">,</span><span class="s2">&quot;TOSHIBA&quot;</span><span class="s0">,</span><span class="s2">&quot;TPV TECHNOLOGY&quot;</span><span class="s0">,</span><span class="s2">&quot;TP VISION &quot;</span><span class="s0">,</span><span class="s2">&quot;TRANSVISION&quot;</span><span class="s0">,</span><span class="s2">&quot;TRAV-LER RADOP&quot;</span><span class="s0">,</span><span class="s2">&quot;TRAVELERS ELECTRONICS CO.&quot;</span><span class="s0">,</span><span class="s2">&quot;TRINIUM ELECTRONICS PHILIPPINES&quot;</span><span class="s0">,</span><span class="s2">&quot;TRIUMPH&quot;</span><span class="s0">,</span><span class="s2">&quot;UHER&quot;</span><span class="s0">,</span><span class="s2">&quot;ULTRA&quot;</span><span class="s0">,</span><span class="s2">&quot;ULTRAVOX&quot;</span><span class="s0">,</span><span class="s2">&quot;UNITED STATES TELEVISION MANUFACTURING CORP.&quot;</span><span class="s0">,</span><span class="s2">&quot;UNIVERSUM&quot;</span><span class="s0">,</span><span class="s2">&quot;VESTEL&quot;</span><span class="s0">,</span><span class="s2">&quot;VIDEOCON&quot;</span><span class="s0">,</span><span class="s2">&quot;VIDEOSAT&quot;</span><span class="s0">,</span><span class="s2">&quot;VIDEOTECHNIC&quot;</span><span class="s0">,</span><span class="s2">&quot;VIEWSONIC&quot;</span><span class="s0">,</span><span class="s2">&quot;VISION&quot;</span><span class="s0">,</span><span class="s2">&quot;VISTRON&quot;</span><span class="s0">,</span><span class="s2">&quot;VIZIO&quot;</span><span class="s0">,</span><span class="s2">&quot;VU&quot;</span><span class="s0">,</span><span class="s2">&quot;WALTHAM&quot;</span><span class="s0">,</span><span class="s2">&quot;WARWICK&quot;</span><span class="s0">,</span><span class="s2">&quot;WATSON&quot;</span><span class="s0">,</span><span class="s2">&quot;WATT RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;WELLS-GARDNER &quot;</span><span class="s0">,</span><span class="s2">&quot;WESTINGHOUSE&quot;</span><span class="s0">,</span><span class="s2">&quot;WESTINGHOUSE DIGITAL&quot;</span><span class="s0">,</span><span class="s2">&quot;WESTON ELECTRONICS &quot;</span><span class="s0">,</span><span class="s2">&quot;WHITE-WESTINGHOUSE&quot;</span><span class="s0">,</span><span class="s2">&quot;X2GEN&quot;</span><span class="s0">,</span><span class="s2">&quot;YOKO&quot;</span><span class="s0">,</span><span class="s2">&quot;YOKO &quot;</span><span class="s0">,</span><span class="s2">&quot;ZANUSSI&quot;</span><span class="s0">,</span><span class="s2">&quot;ZENITH RADIO&quot;</span><span class="s0">,</span><span class="s2">&quot;ZONDA&quot;</span><span class="s1">}</span><span class="s0">;</span><span class="s1"> 
+            Set&lt;String&gt; extendedBrands = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(String b : extendedBrandlist){ 
+                </span><span class="s0">if </span><span class="s1">(b.contains(</span><span class="s2">&quot; &quot;</span><span class="s1">)) 
+                    b = b.substring(</span><span class="s3">0</span><span class="s0">,</span><span class="s1">b.indexOf(</span><span class="s2">&quot; &quot;</span><span class="s1">))</span><span class="s0">; </span><span class="s4">//take only first word.</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(!extendedBrands.contains(b.replace(</span><span class="s2">&quot;</span><span class="s0">\u0099</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">).toLowerCase())) 
+                    extendedBrands.add(b.replace(</span><span class="s2">&quot;</span><span class="s0">\u0099</span><span class="s2">&quot;</span><span class="s0">,</span><span class="s2">&quot;&quot;</span><span class="s1">).toLowerCase())</span><span class="s0">;</span><span class="s1"> 
+            } 
+            </span><span class="s0">for </span><span class="s1">(ProductDesc p : data) { 
+                </span><span class="s0">if </span><span class="s1">(productInfoMap.containsKey(p.ID)) 
+                    </span><span class="s0">continue; </span><span class="s4">//already have this product's info</span><span class="s1"> 
+                ProductInfo pInfo = </span><span class="s0">new </span><span class="s1">ProductInfo()</span><span class="s0">;</span><span class="s1"> 
+                productInfoMap.put(p.ID</span><span class="s0">, </span><span class="s1">pInfo)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s4">//-----------BRAND</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(!brands.containsKey(p.shop)) 
+                    System.out.println(</span><span class="s2">&quot;-----------------------------ERROR&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                Set&lt;String&gt; tokens1 = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(Arrays.asList(p.title.replace(</span><span class="s2">&quot;</span><span class="s0">\u0099</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">).replace(</span><span class="s2">&quot;,&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">).toLowerCase().split(</span><span class="s2">&quot;</span><span class="s0">\\</span><span class="s2">s+&quot;</span><span class="s1">)))</span><span class="s0">;</span><span class="s1"> 
+                tokens1.retainAll(brands.get(p.shop))</span><span class="s0">;    </span><span class="s4">//retainAll takes intersection of (by definition unique) items of both sets</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(!tokens1.isEmpty()){ 
+                    </span><span class="s0">if </span><span class="s1">(tokens1.size()&gt;</span><span class="s3">1</span><span class="s1">) 
+                        System.out.println(</span><span class="s2">&quot;Multiple brands found&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                    String onetoken1 = tokens1.iterator().next()</span><span class="s0">;</span><span class="s1"> 
+                    pInfo.setBrand(onetoken1)</span><span class="s0">;</span><span class="s1"> 
+                } </span><span class="s0">else </span><span class="s1">{ 
+                    </span><span class="s4">//search first in key</span><span class="s1"> 
+                    </span><span class="s0">if </span><span class="s1">(brandkeys.containsKey(p.shop) &amp; p.featuresMap.containsKey(brandkeys.get(p.shop))){ 
+                        String foundBrand = p.featuresMap.get(brandkeys.get(p.shop))</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(foundBrand.contains(</span><span class="s2">&quot; &quot;</span><span class="s1">)) 
+                            foundBrand = foundBrand.substring(</span><span class="s3">0</span><span class="s0">,</span><span class="s1">foundBrand.indexOf(</span><span class="s2">&quot; &quot;</span><span class="s1">))</span><span class="s0">; </span><span class="s4">//take only first word.</span><span class="s1"> 
+                        foundBrand = foundBrand.replace(</span><span class="s2">&quot;</span><span class="s0">\u0099</span><span class="s2">&quot;</span><span class="s0">,</span><span class="s2">&quot;&quot;</span><span class="s1">).toLowerCase()</span><span class="s0">;</span><span class="s1"> 
+                        brands.get(p.shop).add(foundBrand)</span><span class="s0">;</span><span class="s1"> 
+                        pInfo.setBrand(foundBrand)</span><span class="s0">;</span><span class="s1"> 
+                    } </span><span class="s0">else </span><span class="s1">{ </span><span class="s4">//search in extended brand list</span><span class="s1"> 
+                        Set&lt;String&gt; tokens2 = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(Arrays.asList(p.title.replace(</span><span class="s2">&quot;</span><span class="s0">\u0099</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">).replace(</span><span class="s2">&quot;,&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">).toLowerCase().split(</span><span class="s2">&quot;</span><span class="s0">\\</span><span class="s2">s+&quot;</span><span class="s1">)))</span><span class="s0">;</span><span class="s1"> 
+                        tokens2.retainAll(extendedBrands)</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(!tokens2.isEmpty()){ 
+                            String onetoken2 = tokens2.iterator().next()</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s0">if </span><span class="s1">(tokens2.size()&gt;</span><span class="s3">1</span><span class="s1">) 
+                                System.out.println(</span><span class="s2">&quot;Multiple brands found&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                            brands.get(p.shop).add(onetoken2)</span><span class="s0">;</span><span class="s1"> 
+                            pInfo.setBrand(onetoken2)</span><span class="s0">;</span><span class="s1"> 
+                        } </span><span class="s0">else</span><span class="s1">{ 
+                            System.out.println(p.title)</span><span class="s0">;</span><span class="s1"> 
+                        } 
+                    } 
+                } 
+                </span><span class="s4">//---------TITLE</span><span class="s1"> 
+                String t = p.title</span><span class="s0">;</span><span class="s1"> 
+ 
+                Set&lt;String&gt; mws = extractModelWords(t)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">for </span><span class="s1">(String mw : mws){ 
+                    String[] splits = mw 
+                            .replace(</span><span class="s2">&quot;,&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s4">//e.g. in milions. 1,000,000 should be just 1000000</span><span class="s1"> 
+                            .replace(</span><span class="s2">&quot;x&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;$&quot;</span><span class="s0">, </span><span class="s2">&quot;dollar&quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;</span><span class="s0">\&quot;</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;º&quot;</span><span class="s0">, </span><span class="s2">&quot;degrees&quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;/&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;:&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;~&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;”&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                            .replace(</span><span class="s2">&quot;-&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">).split(</span><span class="s2">&quot; +|;&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+                    </span><span class="s0">for </span><span class="s1">(String waardeSplitted : splits) { 
+                        String foundValue = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                        String foundString = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                        Matcher getallen = numberDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">double </span><span class="s1">converted = -</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(getallen.find()) { 
+                            foundValue = findGetallen(getallen)</span><span class="s0">;</span><span class="s1"> 
+                            converted = Double.parseDouble(foundValue)</span><span class="s0">;</span><span class="s1"> 
+                            waardeSplitted = waardeSplitted.replaceAll(</span><span class="s2">&quot;</span><span class="s0">\\</span><span class="s2">d&quot;</span><span class="s0">,</span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s0">; </span><span class="s4">//strip the numbers</span><span class="s1"> 
+                        } 
+ 
+                        Matcher strings = leestekenDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(strings.find()) { 
+                            strings = leestekenDetector.matcher(waardeSplitted)</span><span class="s0">; </span><span class="s4">//renew it</span><span class="s1"> 
+                            foundString = findStrings(strings</span><span class="s0">, </span><span class="s1">foundString)</span><span class="s0">;</span><span class="s1"> 
+ 
+                            </span><span class="s4">//units</span><span class="s1"> 
+                            </span><span class="s0">if </span><span class="s1">(units.containsKey(foundString)){ 
+                                String canonical = units.get(foundString)</span><span class="s0">;</span><span class="s1"> 
+                                pInfo.addUnit(canonical</span><span class="s0">,</span><span class="s1">converted)</span><span class="s0">;</span><span class="s1"> 
+                            } </span><span class="s0">else </span><span class="s1">{ 
+                                pInfo.addRest(mw)</span><span class="s0">;</span><span class="s1"> 
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        } 
+ 
+ 
+        </span><span class="s0">if </span><span class="s1">(onlyphase2) </span><span class="s4">//always</span><span class="s1"> 
+            </span><span class="s0">return;</span><span class="s1"> 
+ 
+        </span><span class="s0">if</span><span class="s1">(testing==</span><span class="s3">0</span><span class="s1">){ 
+ 
+            </span><span class="s0">try</span><span class="s1"> 
+            { 
+                FileWriter writer = </span><span class="s0">new </span><span class="s1">FileWriter(</span><span class="s2">&quot;./hdfs/nick_phase0_training.csv&quot;</span><span class="s0">,true</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                writer.write(</span><span class="s2">&quot;f1;precision;recall;similarity_threshold;min_key_score;ttest_multiplier;string_bonus;max_contained_score;key_weight;&quot; </span><span class="s1">+ 
+                        </span><span class="s2">&quot;double_weight;string_weight;cov_weight;div_weight;unit_weight;counter&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                writer.append(</span><span class="s2">'</span><span class="s0">\n</span><span class="s2">'</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                writer.flush()</span><span class="s0">;</span><span class="s1"> 
+ 
+                </span><span class="s4">//initialization:</span><span class="s1"> 
+                </span><span class="s0">boolean </span><span class="s1">assigning</span><span class="s0">;</span><span class="s1"> 
+                List&lt;String&gt; checked_shops = </span><span class="s0">new </span><span class="s1">ArrayList&lt;&gt;()</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">highest_f1=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                Key best_pair_k1</span><span class="s0">;</span><span class="s1"> 
+                Key best_pair_k2</span><span class="s0">;</span><span class="s1"> 
+                Key best_matching_k2</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">highest_pair_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">highest_k2_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">p_value</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">double_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">string_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">double_jaccard_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">ttest_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">unit_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">div_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">cov_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">key_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">boolean </span><span class="s1">key_contains1</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">boolean </span><span class="s1">key_contains2</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">is_string</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">int </span><span class="s1">counter=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                Double[] f</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">f1</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">precision</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">double </span><span class="s1">recall</span><span class="s0">;</span><span class="s1"> 
+</span><span class="s4">//                String w1 = &quot;newegg.com&quot;;</span><span class="s1"> 
+</span><span class="s4">//                String w2 = &quot;bestbuy.com&quot;;</span><span class="s1"> 
+ 
+                </span><span class="s4">//some parameters:</span><span class="s1"> 
+                </span><span class="s4">//double ttest_multiplier=2;</span><span class="s1"> 
+</span><span class="s4">//                double similarity_threshold=1.7;</span><span class="s1"> 
+</span><span class="s4">//                double min_key_score=0.7;</span><span class="s1"> 
+</span><span class="s4">//                double string_bonus=0.4;</span><span class="s1"> 
+</span><span class="s4">//                double max_contained_score=0.75;</span><span class="s1"> 
+</span><span class="s4">////</span><span class="s1"> 
+                </span><span class="s4">//some weight parameters:</span><span class="s1"> 
+</span><span class="s4">//                double key_weight       = 1.1;</span><span class="s1"> 
+</span><span class="s4">//                double double_weight    = 2;</span><span class="s1"> 
+</span><span class="s4">//                double string_weight    = 2;</span><span class="s1"> 
+</span><span class="s4">//                double cov_weight       = 0.5;</span><span class="s1"> 
+</span><span class="s4">//                double div_weight       = 0.5;</span><span class="s1"> 
+</span><span class="s4">//                double unit_weight      = 0.5;</span><span class="s1"> 
+ 
+ 
+                Double[] similarity_thresholds  =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">1.7</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//1.7 ook 1.5-1.7</span><span class="s1"> 
+                Double[] min_key_scores         =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.7</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.7 echt</span><span class="s1"> 
+                Double[] ttest_multipliers      =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">2.0</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//2 is geen variabele meer.</span><span class="s1"> 
+                Double[] string_bonuss          =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.4</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.4. ook 0.2-0.6</span><span class="s1"> 
+                Double[] max_contained_scores   =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.75</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.7</span><span class="s1"> 
+ 
+                Double[] key_weights            =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">1.1</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//1.1 of 1 of 0.9</span><span class="s1"> 
+                Double[] double_weights         =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">5.0</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//2 ook 1.75-2.5</span><span class="s1"> 
+                Double[] string_weights         =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">2.0</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//2 ook 2-2.5</span><span class="s1"> 
+                Double[] cov_weights            =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.5</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.5 ook 0.2 -0.8</span><span class="s1"> 
+                Double[] div_weights            =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.5</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.5 ook 0-0.5</span><span class="s1"> 
+                Double[] unit_weights           =</span><span class="s0">new </span><span class="s1">Double[]{</span><span class="s3">0.5</span><span class="s1">}</span><span class="s0">;</span><span class="s4">//0.5 alles</span><span class="s1"> 
+ 
+                </span><span class="s0">long </span><span class="s1">start_time = System.currentTimeMillis()</span><span class="s0">;</span><span class="s1"> 
+ 
+                </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">ttest_multiplier : ttest_multipliers){ </span><span class="s4">//2</span><span class="s1"> 
+                    </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">key_weight : key_weights){ </span><span class="s4">//1.1</span><span class="s1"> 
+                        </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">max_contained_score : max_contained_scores){</span><span class="s4">//0.75</span><span class="s1"> 
+                            </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">min_key_score : min_key_scores){</span><span class="s4">//0.7</span><span class="s1"> 
+                                </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">cov_weight : cov_weights){ </span><span class="s4">//0.5</span><span class="s1"> 
+                                    </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">div_weight : div_weights){ </span><span class="s4">//0.5</span><span class="s1"> 
+                                        </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">unit_weight : unit_weights){ </span><span class="s4">//0.5</span><span class="s1"> 
+                                            </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">string_bonus : string_bonuss){ </span><span class="s4">//0.4</span><span class="s1"> 
+                                                </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">string_weight : string_weights){ </span><span class="s4">//2</span><span class="s1"> 
+                                                    </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">similarity_threshold : similarity_thresholds){ </span><span class="s4">//1.7</span><span class="s1"> 
+                                                        </span><span class="s0">for </span><span class="s1">(</span><span class="s0">double </span><span class="s1">double_weight : double_weights){ </span><span class="s4">//2</span><span class="s1"> 
+ 
+                                                            counter++</span><span class="s0">;</span><span class="s1"> 
+                                                            </span><span class="s4">//System.out.println(counter);</span><span class="s1"> 
+                                                            </span><span class="s0">if</span><span class="s1">(counter % </span><span class="s3">12 </span><span class="s1">== </span><span class="s3">0</span><span class="s1">){ 
+                                                                </span><span class="s0">long </span><span class="s1">end_time = System.currentTimeMillis()</span><span class="s0">;</span><span class="s1"> 
+                                                                </span><span class="s0">long </span><span class="s1">difference = end_time-start_time</span><span class="s0">;</span><span class="s1"> 
+                                                                System.out.println(counter)</span><span class="s0">;</span><span class="s1"> 
+                                                                System.out.println(difference/</span><span class="s3">1000 </span><span class="s1">+ </span><span class="s2">&quot; seconds.&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                                                            } 
+ 
+                                                            alignments.clear()</span><span class="s0">;</span><span class="s1"> 
+                                                            </span><span class="s4">//alignments2.clear();</span><span class="s1"> 
+                                                            </span><span class="s4">//allign keys between webshops</span><span class="s1"> 
+                checked_shops.clear()</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">for </span><span class="s1">(String w1 : keys.keySet()){ </span><span class="s4">//loop over webshops</span><span class="s1"> 
+                    checked_shops.add(w1)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s0">for </span><span class="s1">(String w2 : keys.keySet()){ 
+                        </span><span class="s0">if</span><span class="s1">(checked_shops.contains(w2)){</span><span class="s0">continue;</span><span class="s1">} </span><span class="s4">//to prevent double comparisons</span><span class="s1"> 
+ 
+                                                            Set&lt;Object&gt; keys1 = </span><span class="s0">new </span><span class="s1">HashSet(keys.get(w1).values())</span><span class="s0">;</span><span class="s1"> 
+                                                            Set&lt;Object&gt; keys2 = </span><span class="s0">new </span><span class="s1">HashSet(keys.get(w2).values())</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                            </span><span class="s4">//double f1_msm = testmsm(keys1,keys2,0.7);</span><span class="s1"> 
+ 
+                                                            assigning = </span><span class="s0">true;</span><span class="s1"> 
+                                                            </span><span class="s0">while</span><span class="s1">(assigning){ 
+                                                                assigning=</span><span class="s0">false;</span><span class="s1"> 
+                                                                best_pair_k1 = </span><span class="s0">null;</span><span class="s1"> 
+                                                                best_pair_k2 = </span><span class="s0">null;</span><span class="s1"> 
+                                                                highest_pair_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                                                </span><span class="s0">for </span><span class="s1">(Object keyobject1 : keys1){ 
+                                                                    Key k1 = (Key) keyobject1</span><span class="s0">; </span><span class="s4">//take one key from webshop 1</span><span class="s1"> 
+                                                                    best_matching_k2 = </span><span class="s0">null;</span><span class="s1"> 
+                                                                    highest_k2_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                                    </span><span class="s0">for </span><span class="s1">(Object keyobject2 : keys2){ 
+                                                                        Key k2 = (Key) keyobject2</span><span class="s0">; </span><span class="s4">//loop over all keys from webshop 2</span><span class="s1"> 
+ 
+                                                                        </span><span class="s0">if </span><span class="s1">(!k1.datatype.equals(k2.datatype)) 
+                                                                            </span><span class="s0">continue; </span><span class="s4">//we dont even score it.</span><span class="s1"> 
+ 
+                                                                        p_value = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        double_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        string_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        double_jaccard_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        ttest_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        unit_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        div_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        cov_score =</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        key_score =</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                        key_contains1=</span><span class="s0">false;</span><span class="s1"> 
+                                                                        key_contains2=</span><span class="s0">false;</span><span class="s1"> 
+                                                                        is_string=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                                        </span><span class="s4">//key_name</span><span class="s1"> 
+                                                                        key_score = metric.getSimilarity(preProcess(k1.key_name)</span><span class="s0">,</span><span class="s1">preProcess(k2.key_name))</span><span class="s0">;</span><span class="s1"> 
+                                                                        key_contains1 = preProcess(k1.key_name).contains(preProcess(k2.key_name))</span><span class="s0">;</span><span class="s1"> 
+                                                                        key_contains2 = preProcess(k2.key_name).contains(preProcess(k1.key_name))</span><span class="s0">;</span><span class="s1"> 
+                                                                        </span><span class="s0">if </span><span class="s1">(key_contains1 | key_contains2){ 
+                                                                            key_score = java.lang.Math.max(key_score</span><span class="s0">,</span><span class="s1">max_contained_score)</span><span class="s0">;</span><span class="s1"> 
+                                                                        } 
+                                                                        </span><span class="s0">if</span><span class="s1">(key_score&lt;min_key_score){</span><span class="s0">continue;</span><span class="s1">} </span><span class="s4">//too risky</span><span class="s1"> 
+ 
+                                                                        </span><span class="s0">if </span><span class="s1">(k1.datatype.contains(</span><span class="s2">&quot;DOUBLES&quot;</span><span class="s1">)) { 
+                                                                            </span><span class="s0">double</span><span class="s1">[] valuesA = Doubles.toArray(k1.doubleValues)</span><span class="s0">;</span><span class="s1"> 
+                                                                            </span><span class="s0">double</span><span class="s1">[] valuesB = Doubles.toArray(k2.doubleValues)</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                                            </span><span class="s0">if </span><span class="s1">(valuesA.length &gt; </span><span class="s3">1 </span><span class="s1">&amp;&amp; valuesB.length &gt; </span><span class="s3">1</span><span class="s1">) { 
+                                                                                </span><span class="s4">//double p_value = km.kolmogorovSmirnovTest(valuesA, valuesB, true);</span><span class="s1"> 
+                                                                                p_value = studentTest.tTest(valuesA</span><span class="s0">, </span><span class="s1">valuesB)</span><span class="s0">;</span><span class="s1"> 
+                                                                                ttest_score=p_value</span><span class="s0">;</span><span class="s1"> 
+                                                                            } 
+                                                                            double_jaccard_score = jaccard_similarity(k1.doubleValues_strings</span><span class="s0">, </span><span class="s1">k2.doubleValues_strings)</span><span class="s0">;</span><span class="s1"> 
+                                                                            </span><span class="s4">//System.out.println(ttest_score + &quot;__&quot; + double_jaccard);</span><span class="s1"> 
+                                                                            double_score = java.lang.Math.max(ttest_score</span><span class="s0">,</span><span class="s1">double_jaccard_score)</span><span class="s0">;</span><span class="s1"> 
+                                                                            double_score = java.lang.Math.min(double_score</span><span class="s0">,</span><span class="s3">1</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+                                                                            </span><span class="s0">if </span><span class="s1">(k1.unit.equals(</span><span class="s2">&quot;none&quot;</span><span class="s1">) | k2.unit.equals(</span><span class="s2">&quot;none&quot;</span><span class="s1">)){ 
+                                                                                unit_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                                                                            } </span><span class="s0">else </span><span class="s1">{ 
+                                                                                </span><span class="s0">if </span><span class="s1">(k1.unit.equals(k2.unit)) { 
+                                                                                    unit_score = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                                                                } </span><span class="s0">else </span><span class="s1">{ 
+                                                                                    unit_score = -</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                                                                } 
+                                                                            } 
+                                                                        } </span><span class="s0">else </span><span class="s1">{ </span><span class="s4">//STRINGS</span><span class="s1"> 
+                                                                            string_score = jaccard_similarity(k1.stringValues</span><span class="s0">, </span><span class="s1">k2.stringValues)</span><span class="s0">;</span><span class="s1"> 
+                                                                            is_string = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                                                        } 
+ 
+                                                                        </span><span class="s4">//coverage</span><span class="s1"> 
+                                                                        cov_score= -java.lang.Math.pow(k1.coverage - k2.coverage</span><span class="s0">, </span><span class="s3">2.0</span><span class="s1">)</span><span class="s0">; </span><span class="s4">//negative squared error</span><span class="s1"> 
+                                                                        </span><span class="s4">//diversity: if one of their diversities is only 1, punish.</span><span class="s1"> 
+                                                                        </span><span class="s0">if </span><span class="s1">(java.lang.Math.min(k1.diversity</span><span class="s0">,</span><span class="s1">k2.diversity)==</span><span class="s3">1</span><span class="s1">){ 
+                                                                            div_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                                                        } 
+ 
+                                                                        </span><span class="s0">double </span><span class="s1">total_score = 
+                                                                                key_weight      * key_score + 
+                                                                                        double_weight   * double_score + 
+                                                                                        string_weight   * string_score + 
+                                                                                        cov_weight      * cov_score + 
+                                                                                        div_weight      * div_score + 
+                                                                                        unit_weight     * unit_score + 
+                                                                                        is_string       * string_bonus</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                                        </span><span class="s4">//which k2 matches this k1 best?</span><span class="s1"> 
+                                                                        </span><span class="s0">if </span><span class="s1">(total_score&gt;highest_k2_score){ 
+                                                                            highest_k2_score=total_score</span><span class="s0">;</span><span class="s1"> 
+                                                                            best_matching_k2=k2</span><span class="s0">;</span><span class="s1"> 
+                                                                        } 
+ 
+                                                                    } 
+ 
+                                                                    </span><span class="s4">//which k1 has the best match?</span><span class="s1"> 
+                                                                    </span><span class="s0">if </span><span class="s1">(highest_k2_score&gt;highest_pair_score){ 
+                                                                        highest_pair_score=highest_k2_score</span><span class="s0">;</span><span class="s1"> 
+                                                                        best_pair_k1 = k1</span><span class="s0">;</span><span class="s1"> 
+                                                                        best_pair_k2 = best_matching_k2</span><span class="s0">;</span><span class="s1"> 
+                                                                    } 
+ 
+                                                                } 
+ 
+                                                                </span><span class="s4">//assign k2 to k1 in 1.</span><span class="s1"> 
+ 
+                                                                </span><span class="s0">if </span><span class="s1">(highest_pair_score&gt;=similarity_threshold ){ </span><span class="s4">//has to be higher than some threshold.</span><span class="s1"> 
+                                                                    addMatchingKey(alignments</span><span class="s0">,</span><span class="s1">w1</span><span class="s0">, </span><span class="s1">w2</span><span class="s0">, </span><span class="s1">best_pair_k1.key_name</span><span class="s0">, </span><span class="s1">best_pair_k2.key_name)</span><span class="s0">;</span><span class="s1"> 
+                                                                    </span><span class="s4">//todo maybe later i should create alignments2 from alignments after this loop.</span><span class="s1"> 
+                                                                    addMatchingKey(alignments2</span><span class="s0">, </span><span class="s1">best_pair_k1</span><span class="s0">, </span><span class="s1">best_pair_k2</span><span class="s0">, </span><span class="s1">highest_pair_score)</span><span class="s0">;</span><span class="s1"> 
+                                                                    </span><span class="s4">// and remove them from pool.</span><span class="s1"> 
+                                                                    keys1.remove(best_pair_k1)</span><span class="s0">;</span><span class="s1"> 
+                                                                    keys2.remove(best_pair_k2)</span><span class="s0">;</span><span class="s1"> 
+                                                                    assigning=</span><span class="s0">true;</span><span class="s1"> 
+                                                                } 
+                                                            } 
+                                                            </span><span class="s4">//deze 2 voor alle shops:</span><span class="s1"> 
+                                                            } 
+                                                            } 
+                                                            </span><span class="s4">// deze 2 voor alle shops</span><span class="s1"> 
+                                                            f = hitmatrix_2shops()</span><span class="s0">;</span><span class="s1"> 
+                                                            f1 = f[</span><span class="s3">0</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+                                                            precision = f[</span><span class="s3">1</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+                                                            recall = f[</span><span class="s3">2</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+                                                            </span><span class="s4">//System.out.println(f1);</span><span class="s1"> 
+                                                            </span><span class="s0">if </span><span class="s1">(f1 &gt; highest_f1){ 
+                                                                highest_f1=f1</span><span class="s0">;</span><span class="s1"> 
+                                                                </span><span class="s4">//store it</span><span class="s1"> 
+                                                                String str = f1+</span><span class="s2">&quot;;&quot;</span><span class="s1">+precision+</span><span class="s2">&quot;;&quot;</span><span class="s1">+recall+</span><span class="s2">&quot;;&quot;</span><span class="s1">+similarity_threshold+</span><span class="s2">&quot;;&quot;</span><span class="s1">+min_key_score+</span><span class="s2">&quot;;&quot;</span><span class="s1">+ttest_multiplier+</span><span class="s2">&quot;;&quot;</span><span class="s1">+string_bonus+</span><span class="s2">&quot;;&quot;</span><span class="s1">+ 
+                                                                        max_contained_score+</span><span class="s2">&quot;;&quot;</span><span class="s1">+key_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+double_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+string_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+cov_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+div_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+unit_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+counter</span><span class="s0">;</span><span class="s1"> 
+                                                                System.out.println(str)</span><span class="s0">;</span><span class="s1"> 
+                                                                writer.write(str)</span><span class="s0">;</span><span class="s1"> 
+                                                                writer.append(</span><span class="s2">'</span><span class="s0">\n</span><span class="s2">'</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                                                                writer.flush()</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.clear()</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;f1_train&quot;</span><span class="s0">,</span><span class="s1">f1)</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;similarity_threshold&quot;</span><span class="s0">, </span><span class="s1">similarity_threshold )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;min_key_score&quot;</span><span class="s0">, </span><span class="s1">min_key_score )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;ttest_multiplier&quot;</span><span class="s0">,</span><span class="s1">ttest_multiplier)</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;string_bonus&quot;</span><span class="s0">,</span><span class="s1">string_bonus)</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;max_contained_score&quot;</span><span class="s0">,</span><span class="s1">max_contained_score)</span><span class="s0">;</span><span class="s1"> 
+ 
+                                                                </span><span class="s4">//weights</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;key_weight&quot;</span><span class="s0">, </span><span class="s1">key_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;double_weight&quot;</span><span class="s0">, </span><span class="s1">double_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;string_weight&quot;</span><span class="s0">, </span><span class="s1">string_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;cov_weight&quot;</span><span class="s0">, </span><span class="s1">cov_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;div_weight&quot;</span><span class="s0">, </span><span class="s1">div_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                                best_params.put(</span><span class="s2">&quot;unit_weight&quot;</span><span class="s0">,</span><span class="s1">unit_weight )</span><span class="s0">;</span><span class="s1"> 
+                                                            } 
+                                                            </span><span class="s4">//hier tussen extra brackets</span><span class="s1"> 
+                                                        } 
+                                                    } 
+                                                } 
+                                            } 
+                                        } 
+                                    } 
+                                } 
+                            } 
+                        } 
+                    } 
+                } 
+                </span><span class="s4">//hier tussen extra brackets</span><span class="s1"> 
+                System.out.println(</span><span class="s2">&quot;total combinations were: &quot; </span><span class="s1">+ counter)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">long </span><span class="s1">end_time = System.currentTimeMillis()</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">long </span><span class="s1">difference = end_time-start_time</span><span class="s0">;</span><span class="s1"> 
+                System.out.println(counter)</span><span class="s0">;</span><span class="s1"> 
+                System.out.println(difference/</span><span class="s3">1000 </span><span class="s1">+ </span><span class="s2">&quot; seconds.&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                writer.close()</span><span class="s0">;</span><span class="s1"> 
+                System.out.println(</span><span class="s2">&quot;created train alignments&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            } 
+            </span><span class="s0">catch</span><span class="s1">(IOException e) 
+            { 
+                e.printStackTrace()</span><span class="s0">;</span><span class="s1"> 
+            } 
+ 
+        } </span><span class="s0">else </span><span class="s1">{ </span><span class="s4">//if testing</span><span class="s1"> 
+            alignments_test.clear()</span><span class="s0">;</span><span class="s1"> 
+            alignments2_test.clear()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s4">//create new alignments using the best params from training set:</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">similarity_threshold = best_params.get(</span><span class="s2">&quot;similarity_threshold&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">min_key_score        = best_params.get(</span><span class="s2">&quot;min_key_score&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">ttest_multiplier     = best_params.get(</span><span class="s2">&quot;ttest_multiplier&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">string_bonus         = best_params.get(</span><span class="s2">&quot;string_bonus&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">max_contained_score  = best_params.get(</span><span class="s2">&quot;max_contained_score&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+            </span><span class="s4">//weights</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">key_weight           = best_params.get(</span><span class="s2">&quot;key_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">double_weight        = best_params.get(</span><span class="s2">&quot;double_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">string_weight        = best_params.get(</span><span class="s2">&quot;string_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">cov_weight           = best_params.get(</span><span class="s2">&quot;cov_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">div_weight           = best_params.get(</span><span class="s2">&quot;div_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">unit_weight          = best_params.get(</span><span class="s2">&quot;unit_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+            </span><span class="s4">//initialization:</span><span class="s1"> 
+            </span><span class="s0">boolean </span><span class="s1">assigning</span><span class="s0">;</span><span class="s1"> 
+            List&lt;String&gt; checked_shops = </span><span class="s0">new </span><span class="s1">ArrayList&lt;&gt;()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">highest_f1=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+            Key best_pair_k1</span><span class="s0">;</span><span class="s1"> 
+            Key best_pair_k2</span><span class="s0">;</span><span class="s1"> 
+            Key best_matching_k2</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">highest_pair_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">highest_k2_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">p_value</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">double_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">string_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">double_jaccard_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">ttest_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">unit_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">div_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">cov_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">key_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">boolean </span><span class="s1">key_contains1</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">boolean </span><span class="s1">key_contains2</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">is_string</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">int </span><span class="s1">counter=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            Double[] f_msm</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">f1_msm=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">precision_msm=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">recall_msm=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s4">//String w1 = &quot;newegg.com&quot;;</span><span class="s1"> 
+           </span><span class="s4">// String w2 = &quot;bestbuy.com&quot;;</span><span class="s1"> 
+ 
+            </span><span class="s4">//allign keys between webshops</span><span class="s1"> 
+            checked_shops.clear()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(String w1 : keys.keySet()){ </span><span class="s4">//loop over webshops</span><span class="s1"> 
+                checked_shops.add(w1)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">for </span><span class="s1">(String w2 : keys.keySet()){ 
+                    </span><span class="s0">if</span><span class="s1">(checked_shops.contains(w2)){</span><span class="s0">continue;</span><span class="s1">} </span><span class="s4">//to prevent double comparisons</span><span class="s1"> 
+ 
+            Set&lt;Object&gt; keys1 = </span><span class="s0">new </span><span class="s1">HashSet(keys.get(w1).values())</span><span class="s0">;</span><span class="s1"> 
+            Set&lt;Object&gt; keys2 = </span><span class="s0">new </span><span class="s1">HashSet(keys.get(w2).values())</span><span class="s0">;</span><span class="s1"> 
+ 
+            </span><span class="s4">//test msm</span><span class="s1"> 
+</span><span class="s4">//            f_msm = testmsm(keys1,keys2,0.7);</span><span class="s1"> 
+</span><span class="s4">//            f1_msm = f_msm[0];</span><span class="s1"> 
+</span><span class="s4">//            precision_msm = f_msm[1];</span><span class="s1"> 
+</span><span class="s4">//            recall_msm = f_msm[2];</span><span class="s1"> 
+ 
+            assigning = </span><span class="s0">true;</span><span class="s1"> 
+            </span><span class="s0">while</span><span class="s1">(assigning){ 
+                assigning=</span><span class="s0">false;</span><span class="s1"> 
+                best_pair_k1 = </span><span class="s0">null;</span><span class="s1"> 
+                best_pair_k2 = </span><span class="s0">null;</span><span class="s1"> 
+                highest_pair_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">for </span><span class="s1">(Object keyobject1 : keys1){ 
+                    Key k1 = (Key) keyobject1</span><span class="s0">; </span><span class="s4">//take one key from webshop 1</span><span class="s1"> 
+                    best_matching_k2 = </span><span class="s0">null;</span><span class="s1"> 
+                    highest_k2_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+ 
+                    </span><span class="s0">for </span><span class="s1">(Object keyobject2 : keys2){ 
+                        Key k2 = (Key) keyobject2</span><span class="s0">; </span><span class="s4">//loop over all keys from webshop 2</span><span class="s1"> 
+ 
+                        </span><span class="s0">if </span><span class="s1">(!k1.datatype.equals(k2.datatype)) 
+                            </span><span class="s0">continue; </span><span class="s4">//we dont even score it.</span><span class="s1"> 
+ 
+                        p_value = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        double_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        string_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        double_jaccard_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        ttest_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        unit_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        div_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        cov_score =</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        key_score =</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        key_contains1=</span><span class="s0">false;</span><span class="s1"> 
+                        key_contains2=</span><span class="s0">false;</span><span class="s1"> 
+                        is_string=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+ 
+                        </span><span class="s4">//key_name</span><span class="s1"> 
+                        key_score = metric.getSimilarity(preProcess(k1.key_name)</span><span class="s0">,</span><span class="s1">preProcess(k2.key_name))</span><span class="s0">;</span><span class="s1"> 
+                        key_contains1 = preProcess(k1.key_name).contains(preProcess(k2.key_name))</span><span class="s0">;</span><span class="s1"> 
+                        key_contains2 = preProcess(k2.key_name).contains(preProcess(k1.key_name))</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(key_contains1 | key_contains2){ 
+                            key_score = java.lang.Math.max(key_score</span><span class="s0">,</span><span class="s1">max_contained_score)</span><span class="s0">;</span><span class="s1"> 
+                        } 
+                        </span><span class="s0">if</span><span class="s1">(key_score&lt;min_key_score){</span><span class="s0">continue;</span><span class="s1">} </span><span class="s4">//too risky</span><span class="s1"> 
+ 
+                        </span><span class="s0">if </span><span class="s1">(k1.datatype.contains(</span><span class="s2">&quot;DOUBLES&quot;</span><span class="s1">)) { 
+                            </span><span class="s0">double</span><span class="s1">[] valuesA = Doubles.toArray(k1.doubleValues)</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s0">double</span><span class="s1">[] valuesB = Doubles.toArray(k2.doubleValues)</span><span class="s0">;</span><span class="s1"> 
+ 
+                            </span><span class="s0">if </span><span class="s1">(valuesA.length &gt; </span><span class="s3">1 </span><span class="s1">&amp;&amp; valuesB.length &gt; </span><span class="s3">1</span><span class="s1">) { 
+                                </span><span class="s4">//double p_value = km.kolmogorovSmirnovTest(valuesA, valuesB, true);</span><span class="s1"> 
+                                p_value = studentTest.tTest(valuesA</span><span class="s0">, </span><span class="s1">valuesB)</span><span class="s0">;</span><span class="s1"> 
+                                ttest_score=p_value</span><span class="s0">;</span><span class="s1"> 
+                            } 
+                            double_jaccard_score = jaccard_similarity(k1.doubleValues_strings</span><span class="s0">, </span><span class="s1">k2.doubleValues_strings)</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s4">//System.out.println(ttest_score + &quot;__&quot; + double_jaccard);</span><span class="s1"> 
+                            double_score = java.lang.Math.max(ttest_score</span><span class="s0">,</span><span class="s1">double_jaccard_score)</span><span class="s0">;</span><span class="s1"> 
+                            double_score = java.lang.Math.min(double_score</span><span class="s0">,</span><span class="s3">1</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+                            </span><span class="s0">if </span><span class="s1">(k1.unit.equals(</span><span class="s2">&quot;none&quot;</span><span class="s1">) | k2.unit.equals(</span><span class="s2">&quot;none&quot;</span><span class="s1">)){ 
+                                unit_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                            } </span><span class="s0">else </span><span class="s1">{ 
+                                </span><span class="s0">if </span><span class="s1">(k1.unit.equals(k2.unit)) { 
+                                    unit_score = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                } </span><span class="s0">else </span><span class="s1">{ 
+                                    unit_score = -</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                                } 
+                            } 
+                        } </span><span class="s0">else </span><span class="s1">{ </span><span class="s4">//STRINGS</span><span class="s1"> 
+                            string_score = jaccard_similarity(k1.stringValues</span><span class="s0">, </span><span class="s1">k2.stringValues)</span><span class="s0">;</span><span class="s1"> 
+                            is_string = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                        } 
+ 
+                        </span><span class="s4">//coverage</span><span class="s1"> 
+                        cov_score= -java.lang.Math.pow(k1.coverage - k2.coverage</span><span class="s0">, </span><span class="s3">2.0</span><span class="s1">)</span><span class="s0">; </span><span class="s4">//negative squared error</span><span class="s1"> 
+                        </span><span class="s4">//diversity: if one of their diversities is only 1, punish.</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(java.lang.Math.min(k1.diversity</span><span class="s0">,</span><span class="s1">k2.diversity)==</span><span class="s3">1</span><span class="s1">){ 
+                            div_score=-</span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                        } 
+ 
+                        </span><span class="s0">double </span><span class="s1">total_score = 
+                                key_weight      * key_score + 
+                                        double_weight   * double_score + 
+                                        string_weight   * string_score + 
+                                        cov_weight      * cov_score + 
+                                        div_weight      * div_score + 
+                                        unit_weight     * unit_score + 
+                                        is_string       * string_bonus</span><span class="s0">;</span><span class="s1"> 
+ 
+                        </span><span class="s4">//which k2 matches this k1 best?</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(total_score&gt;highest_k2_score){ 
+                            highest_k2_score=total_score</span><span class="s0">;</span><span class="s1"> 
+                            best_matching_k2=k2</span><span class="s0">;</span><span class="s1"> 
+                        } 
+ 
+                    } 
+ 
+                    </span><span class="s4">//which k1 has the best match?</span><span class="s1"> 
+                    </span><span class="s0">if </span><span class="s1">(highest_k2_score&gt;highest_pair_score){ 
+                        highest_pair_score=highest_k2_score</span><span class="s0">;</span><span class="s1"> 
+                        best_pair_k1 = k1</span><span class="s0">;</span><span class="s1"> 
+                        best_pair_k2 = best_matching_k2</span><span class="s0">;</span><span class="s1"> 
+                    } 
+ 
+                } 
+ 
+                </span><span class="s4">//assign k2 to k1 in 1.</span><span class="s1"> 
+ 
+                </span><span class="s0">if </span><span class="s1">(highest_pair_score&gt;=similarity_threshold ){ </span><span class="s4">//has to be higher than some threshold.</span><span class="s1"> 
+                    addMatchingKey(alignments_test</span><span class="s0">,</span><span class="s1">w1</span><span class="s0">, </span><span class="s1">w2</span><span class="s0">, </span><span class="s1">best_pair_k1.key_name</span><span class="s0">, </span><span class="s1">best_pair_k2.key_name)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s4">//todo maybe later i should create alignments2 from alignments after this loop.</span><span class="s1"> 
+                    addMatchingKey(alignments2_test</span><span class="s0">, </span><span class="s1">best_pair_k1</span><span class="s0">, </span><span class="s1">best_pair_k2</span><span class="s0">, </span><span class="s1">highest_pair_score)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s4">// and remove them from pool.</span><span class="s1"> 
+                    keys1.remove(best_pair_k1)</span><span class="s0">;</span><span class="s1"> 
+                    keys2.remove(best_pair_k2)</span><span class="s0">;</span><span class="s1"> 
+                    assigning=</span><span class="s0">true;</span><span class="s1"> 
+                } 
+            } 
+            } 
+            } 
+ 
+            Double[] f = hitmatrix_2shops()</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">f1_test = f[</span><span class="s3">0</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">precision = f[</span><span class="s3">1</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">recall = f[</span><span class="s3">2</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+ 
+            </span><span class="s0">try</span><span class="s1"> 
+            { 
+                FileWriter writer = </span><span class="s0">new </span><span class="s1">FileWriter(</span><span class="s2">&quot;./hdfs/nick_phase0_testing.csv&quot;</span><span class="s0">,true</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(testcount==</span><span class="s3">2</span><span class="s1">){ </span><span class="s4">//2 means the first test round.</span><span class="s1"> 
+                    writer.write(</span><span class="s2">&quot;f1_test;precision;recall;f1_msm;precision_msm;recall_msm;f1_train;similarity_threshold;min_key_score;ttest_multiplier;string_bonus;max_contained_score;key_weight;&quot; </span><span class="s1">+ 
+                            </span><span class="s2">&quot;double_weight;string_weight;cov_weight;div_weight;unit_weight&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                    writer.append(</span><span class="s2">'</span><span class="s0">\n</span><span class="s2">'</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                    writer.flush()</span><span class="s0">;</span><span class="s1"> 
+                } 
+ 
+ 
+                String str = f1_test+</span><span class="s2">&quot;;&quot;</span><span class="s1">+precision+</span><span class="s2">&quot;;&quot;</span><span class="s1">+recall+</span><span class="s2">&quot;;&quot;</span><span class="s1">+f1_msm+</span><span class="s2">&quot;;&quot;</span><span class="s1">+precision_msm+</span><span class="s2">&quot;;&quot;</span><span class="s1">+recall_msm+</span><span class="s2">&quot;;&quot;</span><span class="s1">+best_params.get(</span><span class="s2">&quot;f1_train&quot;</span><span class="s1">)+</span><span class="s2">&quot;;&quot;</span><span class="s1">+similarity_threshold+</span><span class="s2">&quot;;&quot;</span><span class="s1">+min_key_score+</span><span class="s2">&quot;;&quot;</span><span class="s1">+ttest_multiplier+</span><span class="s2">&quot;;&quot;</span><span class="s1">+string_bonus+</span><span class="s2">&quot;;&quot;</span><span class="s1">+max_contained_score+</span><span class="s2">&quot;;&quot;</span><span class="s1">+ 
+                        key_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+double_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+string_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+cov_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+div_weight+</span><span class="s2">&quot;;&quot;</span><span class="s1">+unit_weight</span><span class="s0">;</span><span class="s1"> 
+                System.out.println(str)</span><span class="s0">;</span><span class="s1"> 
+                writer.write(str)</span><span class="s0">;</span><span class="s1"> 
+                writer.append(</span><span class="s2">'</span><span class="s0">\n</span><span class="s2">'</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+                writer.flush()</span><span class="s0">;</span><span class="s1"> 
+ 
+                writer.close()</span><span class="s0">;</span><span class="s1"> 
+                System.out.println(</span><span class="s2">&quot;created test alignments&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            } 
+            </span><span class="s0">catch</span><span class="s1">(IOException e) 
+            { 
+                e.printStackTrace()</span><span class="s0">;</span><span class="s1"> 
+            } 
+            best_params.clear()</span><span class="s0">;</span><span class="s1"> 
+        } 
+    } 
+ 
+ 
+ 
+    </span><span class="s0">private </span><span class="s1">Double[] hitmatrix_2shops(){ 
+        Map&lt;String</span><span class="s0">, </span><span class="s1">Map&gt; map</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(testing==</span><span class="s3">0</span><span class="s1">) { 
+            map = alignments</span><span class="s0">;</span><span class="s1"> 
+        } </span><span class="s0">else</span><span class="s1">{ 
+            map = alignments_test</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s4">//create hitmatrix</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">TP=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">FP=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">FN=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">count1=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">count2=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        String w1 = </span><span class="s2">&quot;newegg.com&quot;</span><span class="s0">;</span><span class="s1"> 
+        String w2 = </span><span class="s2">&quot;bestbuy.com&quot;</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(!map.containsKey(w1)){ 
+            </span><span class="s0">return new </span><span class="s1">Double[]{</span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s1">}</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; temp_object1 = map.get(w1)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if</span><span class="s1">(!temp_object1.containsKey(w2)){ 
+            </span><span class="s0">return new </span><span class="s1">Double[]{</span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s1">}</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">String&gt; temp_object2 = temp_object1.get(w2)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String k1 : temp_object2.keySet()){ 
+            String k2 = temp_object2.get(k1)</span><span class="s0">;</span><span class="s1"> 
+            count1++</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if</span><span class="s1">(NickKeyMatcher.is_aligned(NickKeyMatcher.golden_alignments</span><span class="s0">, </span><span class="s1">w1</span><span class="s0">, </span><span class="s1">w2</span><span class="s0">, </span><span class="s1">k1</span><span class="s0">, </span><span class="s1">k2)){ 
+                TP++</span><span class="s0">;</span><span class="s1"> 
+            }</span><span class="s0">else</span><span class="s1">{ 
+                </span><span class="s4">//    checking(w1,w2,k1,k2);</span><span class="s1"> 
+                FP++</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+ 
+        </span><span class="s0">if </span><span class="s1">(!NickKeyMatcher.golden_alignments.containsKey(w1)){ 
+            </span><span class="s0">return new </span><span class="s1">Double[]{</span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s1">}</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; temp_object1g = NickKeyMatcher.golden_alignments.get(w1)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if</span><span class="s1">(!temp_object1g.containsKey(w2)){ 
+            </span><span class="s0">return new </span><span class="s1">Double[]{</span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s0">, </span><span class="s3">0.0</span><span class="s1">}</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">String&gt; temp_object2g = temp_object1g.get(w2)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String k1 : temp_object2g.keySet()){ 
+            count2++</span><span class="s0">;</span><span class="s1"> 
+            String k2 = temp_object2g.get(k1)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if</span><span class="s1">(!NickKeyMatcher.is_aligned(map</span><span class="s0">, </span><span class="s1">w1</span><span class="s0">, </span><span class="s1">w2</span><span class="s0">, </span><span class="s1">k1</span><span class="s0">, </span><span class="s1">k2)){ 
+</span><span class="s4">//                checking(w1,w2,k1,k2);</span><span class="s1"> 
+                FN++</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+        </span><span class="s0">double </span><span class="s1">f1 = (</span><span class="s0">double</span><span class="s1">)(</span><span class="s3">2</span><span class="s1">*TP)/(</span><span class="s0">double</span><span class="s1">)(</span><span class="s3">2</span><span class="s1">*TP + FP + FN)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">precision = (</span><span class="s0">double</span><span class="s1">)(TP)/(</span><span class="s0">double</span><span class="s1">)(TP + FP)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">recall = (</span><span class="s0">double</span><span class="s1">)(TP)/(</span><span class="s0">double</span><span class="s1">)(TP + FN)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">return new </span><span class="s1">Double[]{f1</span><span class="s0">, </span><span class="s1">precision</span><span class="s0">, </span><span class="s1">recall}</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public </span><span class="s1">Double[] testmsm(Set&lt;Object&gt; keys1</span><span class="s0">, </span><span class="s1">Set&lt;Object&gt; keys2</span><span class="s0">, double </span><span class="s1">thres){ 
+        Set&lt;StringPair&gt; msm_alignment = </span><span class="s0">new </span><span class="s1">HashSet()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s4">//InterfaceTokeniser tokeniser = new TokeniserQGram2();</span><span class="s1"> 
+        </span><span class="s4">//AbstractStringMetric metric = new QGramsDistance(tokeniser);</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">key_score</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(Object keyobject1 : keys1){ 
+            Key k1 = (Key) keyobject1</span><span class="s0">; </span><span class="s4">//take one key from webshop 1</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(Object keyobject2 : keys2){ 
+                Key k2 = (Key) keyobject2</span><span class="s0">; </span><span class="s4">//take one key from webshop 1</span><span class="s1"> 
+ 
+                key_score = metric.getSimilarity(preProcess(k1.key_name)</span><span class="s0">,</span><span class="s1">preProcess(k2.key_name))</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if</span><span class="s1">(key_score&gt;thres){ 
+                    StringPair pair = </span><span class="s0">new </span><span class="s1">StringPair(k1.key_name</span><span class="s0">,</span><span class="s1">k2.key_name)</span><span class="s0">;</span><span class="s1"> 
+                    msm_alignment.add(pair)</span><span class="s0">;</span><span class="s1"> 
+                } 
+ 
+            } 
+        } 
+        System.out.println()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s4">//create hitmatrix</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">TP=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">FP=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">FN=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        String w1 = </span><span class="s2">&quot;newegg.com&quot;</span><span class="s0">;</span><span class="s1"> 
+        String w2 = </span><span class="s2">&quot;bestbuy.com&quot;</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+        </span><span class="s0">for </span><span class="s1">(StringPair pair : msm_alignment){ 
+            String k1 = pair.id_a</span><span class="s0">;</span><span class="s1"> 
+            String k2 = pair.id_b</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if</span><span class="s1">(NickKeyMatcher.is_aligned(NickKeyMatcher.golden_alignments</span><span class="s0">, </span><span class="s1">w1</span><span class="s0">, </span><span class="s1">w2</span><span class="s0">, </span><span class="s1">k1</span><span class="s0">, </span><span class="s1">k2)){ 
+                TP++</span><span class="s0">;</span><span class="s1"> 
+            }</span><span class="s0">else</span><span class="s1">{ 
+                FP++</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+ 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; temp_object1g = NickKeyMatcher.golden_alignments.get(w1)</span><span class="s0">;</span><span class="s1"> 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">String&gt; temp_object2g = temp_object1g.get(w2)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String k1 : temp_object2g.keySet()){ 
+            String k2 = temp_object2g.get(k1)</span><span class="s0">;</span><span class="s1"> 
+            StringPair pair = </span><span class="s0">new </span><span class="s1">StringPair(k1</span><span class="s0">,</span><span class="s1">k2)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">if</span><span class="s1">(!msm_alignment.contains(pair)){ 
+                FN++</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+        </span><span class="s0">double </span><span class="s1">f1 = (</span><span class="s0">double</span><span class="s1">)(</span><span class="s3">2</span><span class="s1">*TP)/(</span><span class="s0">double</span><span class="s1">)(</span><span class="s3">2</span><span class="s1">*TP + FP + FN)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">precision = (</span><span class="s0">double</span><span class="s1">)(TP)/(</span><span class="s0">double</span><span class="s1">)(TP + FP)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">recall = (</span><span class="s0">double</span><span class="s1">)(TP)/(</span><span class="s0">double</span><span class="s1">)(TP + FN)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">return new </span><span class="s1">Double[]{f1</span><span class="s0">, </span><span class="s1">precision</span><span class="s0">, </span><span class="s1">recall}</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private </span><span class="s1">String findStrings(Matcher strings</span><span class="s0">, </span><span class="s1">String groepen) { 
+        </span><span class="s0">while </span><span class="s1">(strings.find()) { 
+            </span><span class="s0">int </span><span class="s1">i = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+            groepen = groepen + strings.group(</span><span class="s3">0</span><span class="s1">).toLowerCase()</span><span class="s0">;</span><span class="s1"> 
+            i++</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">return </span><span class="s1">groepen</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private static </span><span class="s1">String findGetallen(Matcher getallen) { 
+        String groepen</span><span class="s0">;</span><span class="s1"> 
+        groepen = getallen.group(</span><span class="s3">0</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">while </span><span class="s1">(getallen.find()) { 
+            groepen = groepen + getallen.group(</span><span class="s3">0</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">return </span><span class="s1">groepen</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private double </span><span class="s1">jaccard_similarity(List&lt;String&gt; x_raw</span><span class="s0">, </span><span class="s1">List&lt;String&gt; y_raw) { 
+        Set&lt;String&gt; x = </span><span class="s0">new </span><span class="s1">HashSet&lt;String&gt;(x_raw)</span><span class="s0">;</span><span class="s1"> 
+        Set&lt;String&gt; y = </span><span class="s0">new </span><span class="s1">HashSet&lt;String&gt;(y_raw)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">int </span><span class="s1">xSize = x.size()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">ySize = y.size()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(xSize == </span><span class="s3">0 </span><span class="s1">|| ySize == </span><span class="s3">0</span><span class="s1">) { 
+            </span><span class="s0">return </span><span class="s3">0.0</span><span class="s0">;</span><span class="s1"> 
+        } 
+ 
+        Set&lt;String&gt; intersectionXY = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(x)</span><span class="s0">;</span><span class="s1"> 
+        intersectionXY.retainAll(y)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">return </span><span class="s1">(</span><span class="s0">double</span><span class="s1">) intersectionXY.size() / (</span><span class="s0">double</span><span class="s1">) (xSize &lt; ySize ? xSize : ySize)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private static </span><span class="s1">String preProcess(String str) { 
+        str = str.replaceAll(</span><span class="s2">&quot;</span><span class="s0">\\</span><span class="s2">, |</span><span class="s0">\\</span><span class="s2">. |</span><span class="s0">\\</span><span class="s2">.$|</span><span class="s0">\\</span><span class="s2">(|</span><span class="s0">\\</span><span class="s2">)&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">)</span><span class="s0">;    </span><span class="s4">//remove comma and period at end of word (or period at end of whole string)</span><span class="s1"> 
+        </span><span class="s0">return </span><span class="s1">str.toLowerCase(Locale.ENGLISH)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public static void </span><span class="s1">addMatchingKey(Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; map</span><span class="s0">, </span><span class="s1">String w1</span><span class="s0">, </span><span class="s1">String w2</span><span class="s0">, </span><span class="s1">String k1</span><span class="s0">, </span><span class="s1">String k2){ 
+        </span><span class="s4">//als je een match vind, voeg dan bij alignments.get(w1) een map w2 toe met daarin als &lt;key van w1, key van w2&gt;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(!map.containsKey(w1)){ 
+            map.put(w1</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">Map&gt;())</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">if</span><span class="s1">(!map.get(w1).containsKey(w2)){ 
+            map.get(w1).put(w2</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">String&gt;() )</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">, </span><span class="s1">String&gt; tempmap = (Map&lt;String</span><span class="s0">, </span><span class="s1">String&gt;) map.get(w1).get(w2)</span><span class="s0">;</span><span class="s1"> 
+        tempmap.put(k1</span><span class="s0">,</span><span class="s1">k2)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//todo not in</span><span class="s1"> 
+        </span><span class="s4">//and the other way around as well:</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(!map.containsKey(w2)){ 
+            map.put(w2</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">Map&gt;())</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">if</span><span class="s1">(!map.get(w2).containsKey(w1)){ 
+            map.get(w2).put(w1</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">String&gt;() )</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Map&lt;String</span><span class="s0">, </span><span class="s1">String&gt; tempmap2 = (Map&lt;String</span><span class="s0">, </span><span class="s1">String&gt;) map.get(w2).get(w1)</span><span class="s0">;</span><span class="s1"> 
+        tempmap2.put(k2</span><span class="s0">,</span><span class="s1">k1)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public static void </span><span class="s1">addMatchingKey(Map&lt;String</span><span class="s0">,</span><span class="s1">Map&gt; map</span><span class="s0">, </span><span class="s1">Key k1</span><span class="s0">, </span><span class="s1">Key k2</span><span class="s0">, double </span><span class="s1">pairscore){ 
+        </span><span class="s4">//als je een match vind, voeg dan bij alignments.get(w1) een map w2 toe met daarin als &lt;key van w1, key van w2&gt;</span><span class="s1"> 
+        String w1 = k1.webshop</span><span class="s0">;</span><span class="s1"> 
+        String w2 = k2.webshop</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">if </span><span class="s1">(!map.containsKey(w1)){ 
+            map.put(w1</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">Map&gt;())</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">if</span><span class="s1">(!map.get(w1).containsKey(w2)){ 
+            map.get(w1).put(w2</span><span class="s0">,new </span><span class="s1">HashSet&lt;Keypair&gt;() )</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Set&lt;Keypair&gt; tempmap1 = (Set&lt;Keypair&gt;) map.get(w1).get(w2)</span><span class="s0">;</span><span class="s1"> 
+ 
+        Keypair keypair1 = </span><span class="s0">new </span><span class="s1">Keypair(k1</span><span class="s0">,</span><span class="s1">k2</span><span class="s0">,</span><span class="s1">k1.datatype</span><span class="s0">,</span><span class="s1">pairscore)</span><span class="s0">;</span><span class="s1"> 
+        tempmap1.add(keypair1)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//and the other way around as well:</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(!map.containsKey(w2)){ 
+            map.put(w2</span><span class="s0">,new </span><span class="s1">HashMap&lt;String</span><span class="s0">, </span><span class="s1">Map&gt;())</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">if</span><span class="s1">(!map.get(w2).containsKey(w1)){ 
+            map.get(w2).put(w1</span><span class="s0">,new </span><span class="s1">HashSet&lt;Keypair&gt;() )</span><span class="s0">;</span><span class="s1"> 
+        } 
+        Set&lt;Keypair&gt; tempmap2 = (Set&lt;Keypair&gt;) map.get(w2).get(w1)</span><span class="s0">;</span><span class="s1"> 
+ 
+        Keypair keypair2 = </span><span class="s0">new </span><span class="s1">Keypair(k2</span><span class="s0">,</span><span class="s1">k1</span><span class="s0">,</span><span class="s1">k2.datatype</span><span class="s0">,</span><span class="s1">pairscore)</span><span class="s0">;</span><span class="s1"> 
+        tempmap2.add(keypair2)</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+ 
+ 
+    </span><span class="s0">private static </span><span class="s1">ArrayList&lt;String&gt; extractModelWords(ProductDesc prod</span><span class="s0">, </span><span class="s1">Set&lt;String&gt; keys) { 
+        ArrayList&lt;String&gt; ret = </span><span class="s0">new </span><span class="s1">ArrayList&lt;&gt;()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String q : keys) { 
+            String qVal = prod.featuresMap.get(q)</span><span class="s0">;</span><span class="s1"> 
+            ret.addAll(extractModelWords(qVal))</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">return </span><span class="s1">ret</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private static </span><span class="s1">Set&lt;String&gt; extractModelWords(String title) { 
+        Matcher m = MW_PATTERN.matcher(title)</span><span class="s0">;</span><span class="s1"> 
+        HashSet&lt;String&gt; c = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">while </span><span class="s1">(m.find()) { 
+            String s = m.group(</span><span class="s3">1</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            c.add(s)</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">return </span><span class="s1">c</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private static </span><span class="s1">Pattern getMWPattern() { 
+        String regex = </span><span class="s2">&quot;([a-zA-Z0-9]*(([0-9]+[^0-9^,^ ]+)|([^0-9^,^ ]+[0-9]+))[a-zA-Z0-9]*)&quot;</span><span class="s0">;</span><span class="s1"> 
+        Pattern p = Pattern.compile(regex)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">return </span><span class="s1">p</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s5">/** 
+     * Calculate percentage of matching model words in two sets of model words. 
+     * Model words are broader here: also purely numeric words are treated as model words. 
+     */</span><span class="s1"> 
+    </span><span class="s0">private static double </span><span class="s1">mw(ArrayList&lt;String&gt; C</span><span class="s0">, </span><span class="s1">ArrayList&lt;String&gt; D) { 
+        </span><span class="s0">int </span><span class="s1">totalWords = C.size() + D.size()</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(totalWords == </span><span class="s3">0</span><span class="s1">) </span><span class="s0">return </span><span class="s3">0.0</span><span class="s0">;</span><span class="s1"> 
+        C.retainAll(D)</span><span class="s0">;</span><span class="s1"> 
+        D.retainAll(C)</span><span class="s0">;    </span><span class="s4">//note: duplicate words in a set is counted twice as match.</span><span class="s1"> 
+        </span><span class="s0">return </span><span class="s1">(C.size() + D.size()) / (</span><span class="s0">double</span><span class="s1">) totalWords</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public static boolean </span><span class="s1">differentBrands(</span><span class="s0">int </span><span class="s1">p1_id</span><span class="s0">, int </span><span class="s1">p2_id) { 
+        ProductInfo pInfo1 = productInfoMap.get(p1_id)</span><span class="s0">;</span><span class="s1"> 
+        ProductInfo pInfo2 = productInfoMap.get(p2_id)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(!pInfo1.titleBrand.equals(</span><span class="s2">&quot;unknown&quot;</span><span class="s1">) &amp; !pInfo2.titleBrand.equals(</span><span class="s2">&quot;unknown&quot;</span><span class="s1">)){ 
+            </span><span class="s0">if </span><span class="s1">(!pInfo1.titleBrand.equals(pInfo2.titleBrand)){ 
+                </span><span class="s0">return true; </span><span class="s4">//only if we have both brands and they are unequal, we know for sure that they are different.</span><span class="s1"> 
+            } 
+        } 
+        </span><span class="s0">return false;</span><span class="s1"> 
+    } 
+ 
+ 
+    </span><span class="s0">public static float </span><span class="s1">productSimilarity(ProductDesc p1</span><span class="s0">, </span><span class="s1">ProductDesc p2) { 
+</span><span class="s4">//        float duplicates = 0;</span><span class="s1"> 
+</span><span class="s4">//        if (p1.modelID.equals(p2.modelID)){</span><span class="s1"> 
+</span><span class="s4">//            duplicates = 1;</span><span class="s1"> 
+</span><span class="s4">//        }</span><span class="s1"> 
+</span><span class="s4">//        if (p1.hashCode()!=-99999) //always true</span><span class="s1"> 
+</span><span class="s4">//            return duplicates; //perfect similarity</span><span class="s1"> 
+</span><span class="s4">//        if (mu==1){</span><span class="s1"> 
+</span><span class="s4">//            Double[] title_result = newTitleAnalyzer(p1, p2);</span><span class="s1"> 
+</span><span class="s4">//            Double title_score = title_result[0];</span><span class="s1"> 
+</span><span class="s4">//            Double title_count = title_result[1];</span><span class="s1"> 
+</span><span class="s4">//            if (title_count &gt; title_min)</span><span class="s1"> 
+</span><span class="s4">//                return (float) java.lang.Math.min(1,title_score);//max 1</span><span class="s1"> 
+</span><span class="s4">//            else</span><span class="s1"> 
+</span><span class="s4">//                return 0.0f;</span><span class="s1"> 
+</span><span class="s4">//        }</span><span class="s1"> 
+ 
+        Map&lt;String</span><span class="s0">, </span><span class="s1">Map&gt; map</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(testing==</span><span class="s3">0</span><span class="s1">) { 
+            map = alignments2</span><span class="s0">;</span><span class="s1"> 
+        } </span><span class="s0">else</span><span class="s1">{ 
+            map = alignments2_test</span><span class="s0">;</span><span class="s1"> 
+        } 
+ 
+        </span><span class="s0">int </span><span class="s1">nr_matches=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">aligned_score=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        Set&lt;String&gt; keys1 = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(p1.featuresMap.keySet())</span><span class="s0">;</span><span class="s1"> 
+        Set&lt;String&gt; keys2 = </span><span class="s0">new </span><span class="s1">HashSet&lt;&gt;(p2.featuresMap.keySet())</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">boolean </span><span class="s1">aligning=</span><span class="s0">true;</span><span class="s1"> 
+        </span><span class="s0">if</span><span class="s1">(!map.containsKey(p1.shop) || !map.get(p1.shop).containsKey(p2.shop)){ 
+            aligning =</span><span class="s0">false; </span><span class="s4">//this webshop combi does not have aligned keys.</span><span class="s1"> 
+        } 
+        </span><span class="s0">if </span><span class="s1">(aligning){ 
+            </span><span class="s4">//step a: calculate a total score for those features that can be aligned.</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">pair_weight</span><span class="s0">;</span><span class="s1"> 
+            String pair_type</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">pair_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">total_score =</span><span class="s3">0 </span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">total_weight =</span><span class="s3">0 </span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">allowed_diff</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">d1</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">d2</span><span class="s0">;</span><span class="s1"> 
+ 
+            HashSet&lt;Keypair&gt; keypairs = (HashSet&lt;Keypair&gt;) map.get(p1.shop).get(p2.shop)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(Keypair keypair : keypairs){ 
+                </span><span class="s0">if </span><span class="s1">(p1.featuresMap.containsKey(keypair.k1.key_name) &amp;&amp; p2.featuresMap.containsKey(keypair.k2.key_name)){ 
+                    String rawvalue1 = p1.featuresMap.get(keypair.k1.key_name)</span><span class="s0">;</span><span class="s1"> 
+                    String rawvalue2 = p2.featuresMap.get(keypair.k2.key_name)</span><span class="s0">;</span><span class="s1"> 
+ 
+                    pair_type = keypair.datatype</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s0">if </span><span class="s1">(pair_type.contains(</span><span class="s2">&quot;DOUBLES&quot;</span><span class="s1">)){ 
+ 
+                        d1 = getFirstDouble(keypair.k1</span><span class="s0">,</span><span class="s1">rawvalue1)</span><span class="s0">;</span><span class="s1"> 
+                        d2 = getFirstDouble(keypair.k2</span><span class="s0">,</span><span class="s1">rawvalue2)</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">if </span><span class="s1">(d1==-</span><span class="s3">1 </span><span class="s1">|| d2==-</span><span class="s3">1</span><span class="s1">){ 
+                            </span><span class="s0">if </span><span class="s1">((rawvalue1.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">) &amp; !rawvalue2.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">))|(rawvalue2.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">) &amp; !rawvalue1.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">)) ) 
+                                pair_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s0">else</span><span class="s1"> 
+                                </span><span class="s0">continue; </span><span class="s4">//cannot compare because not both are doubles</span><span class="s1"> 
+                        }</span><span class="s0">else</span><span class="s1">{ 
+                            allowed_diff=java.lang.Math.min(</span><span class="s3">1</span><span class="s0">,</span><span class="s3">0.5</span><span class="s1">*java.lang.Math.min(keypair.k1.std</span><span class="s0">,</span><span class="s1">keypair.k1.std))</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s0">if </span><span class="s1">(java.lang.Math.abs(d1-d2)&lt;=allowed_diff+</span><span class="s3">0.01</span><span class="s1">) 
+                                pair_score = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+                            </span><span class="s0">else</span><span class="s1"> 
+                                pair_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        } 
+                    } </span><span class="s0">else </span><span class="s1">{ 
+                        </span><span class="s0">if </span><span class="s1">((rawvalue1.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">) &amp; !rawvalue2.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">))|(rawvalue2.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">) &amp; !rawvalue1.equals(</span><span class="s2">&quot;No&quot;</span><span class="s1">)) ) 
+                            pair_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+                        </span><span class="s0">else</span><span class="s1"> 
+                            </span><span class="s0">continue; </span><span class="s4">//we dont compare other strings. too unstable.</span><span class="s1"> 
+                    } 
+ 
+                    </span><span class="s4">//calculate weighted score for this key-pair.</span><span class="s1"> 
+                    pair_weight = keypair.pairscore</span><span class="s0">;</span><span class="s1"> 
+                    total_weight += pair_weight</span><span class="s0">;</span><span class="s1"> 
+                    total_score += pair_weight*pair_score</span><span class="s0">;</span><span class="s1"> 
+ 
+                    nr_matches ++</span><span class="s0">;</span><span class="s1"> 
+                    keys1.remove(keypair.k1.key_name)</span><span class="s0">; </span><span class="s4">//so that they wont be scored again in step b.</span><span class="s1"> 
+                    keys2.remove(keypair.k2.key_name)</span><span class="s0">;</span><span class="s1"> 
+                } 
+            } 
+ 
+ 
+            </span><span class="s0">if </span><span class="s1">(nr_matches &gt; </span><span class="s3">0</span><span class="s1">) { 
+                aligned_score = total_score / total_weight</span><span class="s0">;</span><span class="s1"> 
+            } 
+        } 
+ 
+        </span><span class="s4">//step b. calculate a score for the rest ( those features that could not be aligned.)</span><span class="s1"> 
+        ArrayList&lt;String&gt; exMWi = extractModelWords(p1</span><span class="s0">, </span><span class="s1">keys1)</span><span class="s0">; </span><span class="s4">//todo remove units? hebben we in onze map keys</span><span class="s1"> 
+        ArrayList&lt;String&gt; exMWj = extractModelWords(p2</span><span class="s0">, </span><span class="s1">keys2)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">rest_score = mw(exMWi</span><span class="s0">, </span><span class="s1">exMWj)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">double </span><span class="s1">features_score = aligned_score*(</span><span class="s3">1</span><span class="s1">-keys_rest_weight) + rest_score*keys_rest_weight</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s4">//step c. calculate a score for the similarity of the titles.</span><span class="s1"> 
+        Double[] title_result = newTitleAnalyzer(p1</span><span class="s0">, </span><span class="s1">p2)</span><span class="s0">;</span><span class="s1"> 
+        Double title_score = title_result[</span><span class="s3">0</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+        Double title_count = title_result[</span><span class="s3">1</span><span class="s1">]</span><span class="s0">;</span><span class="s1"> 
+ 
+ 
+        </span><span class="s4">//step d. weighted average of the scores of steps a,b,c.</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">final_score</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">if </span><span class="s1">(title_count &gt; title_min){ 
+            </span><span class="s0">if</span><span class="s1">(nr_matches&gt;=aligned_min) 
+                final_score = mu*title_score + (</span><span class="s3">1</span><span class="s1">-mu)*features_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">else</span><span class="s1">{ 
+                </span><span class="s0">if </span><span class="s1">(features_score&lt;epsilon)</span><span class="s4">//when it is a bad score, we still want to use it. reasoning: finding an inequality says more than finding an equality.</span><span class="s1"> 
+                    final_score = mu*title_score + (</span><span class="s3">1</span><span class="s1">-mu)*features_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">else</span><span class="s1"> 
+                    final_score = title_score</span><span class="s0">;</span><span class="s1"> 
+            } 
+        }</span><span class="s0">else</span><span class="s1">{ 
+            </span><span class="s0">if</span><span class="s1">(nr_matches&gt;=aligned_min) 
+                </span><span class="s0">if </span><span class="s1">(title_score&lt;epsilon)</span><span class="s4">//when it is a bad score, we still want to use it. reasoning: finding an inequality says more than finding an equality.</span><span class="s1"> 
+                    final_score = mu*title_score + (</span><span class="s3">1</span><span class="s1">-mu)*features_score</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">else</span><span class="s1"> 
+                    final_score = features_score</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">else</span><span class="s1"> 
+                final_score = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        } 
+ 
+        </span><span class="s0">return </span><span class="s1">(</span><span class="s0">float</span><span class="s1">) java.lang.Math.min(</span><span class="s3">1</span><span class="s0">,</span><span class="s1">final_score)</span><span class="s0">;</span><span class="s4">//max 1</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">private static </span><span class="s1">Double[] newTitleAnalyzer(ProductDesc p1</span><span class="s0">, </span><span class="s1">ProductDesc p2) { 
+        </span><span class="s0">double </span><span class="s1">unitscore=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">unitscore_temp=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">unitcount=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">final_score</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">double </span><span class="s1">total_count</span><span class="s0">;</span><span class="s1"> 
+ 
+        ProductInfo pInfo1 = productInfoMap.get(p1.ID)</span><span class="s0">;</span><span class="s1"> 
+        ProductInfo pInfo2 = productInfoMap.get(p2.ID)</span><span class="s0">;</span><span class="s1"> 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">Set&lt;Double&gt;&gt; units1 = pInfo1.titleUnits</span><span class="s0">;</span><span class="s1"> 
+        Map&lt;String</span><span class="s0">,</span><span class="s1">Set&lt;Double&gt;&gt; units2 = pInfo2.titleUnits</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String unit1 :units1.keySet()) { 
+            </span><span class="s0">for </span><span class="s1">(String unit2 : units2.keySet()) { 
+                </span><span class="s0">if </span><span class="s1">(unit1.equals(unit2)) { </span><span class="s4">//we found matching units. now we compare their values.</span><span class="s1"> 
+                    Set&lt;Double&gt; values1 = units1.get(unit1)</span><span class="s0">;</span><span class="s1"> 
+                    Set&lt;Double&gt; values2 = units2.get(unit2)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s0">for </span><span class="s1">(Double value1 : values1) { 
+                        </span><span class="s0">for </span><span class="s1">(Double value2 : values2) { 
+                            </span><span class="s0">if </span><span class="s1">(Math.abs(value1 - value2) &lt;= </span><span class="s3">1.01</span><span class="s1">) { 
+                                unitscore_temp = </span><span class="s3">1</span><span class="s0">; </span><span class="s4">//if one of them matches, we are satisfied.</span><span class="s1"> 
+                            } 
+                        } 
+                    } 
+                    unitcount++</span><span class="s0">;</span><span class="s1"> 
+                    unitscore+=unitscore_temp</span><span class="s0">;</span><span class="s1"> 
+                    unitscore_temp=</span><span class="s3">0</span><span class="s0">; </span><span class="s4">//reset</span><span class="s1"> 
+                } 
+            } 
+        } 
+        </span><span class="s0">if </span><span class="s1">(unitcount&gt;</span><span class="s3">0</span><span class="s1">) 
+            unitscore = unitscore / unitcount</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s0">double </span><span class="s1">restscore = </span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">int </span><span class="s1">restcount = </span><span class="s3">1</span><span class="s0">;</span><span class="s1"> 
+        Set&lt;String&gt; rests1 = pInfo1.titleRest</span><span class="s0">;</span><span class="s1"> 
+        Set&lt;String&gt; rests2 = pInfo2.titleRest</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(rests1.isEmpty() | rests2.isEmpty()) 
+            restcount = </span><span class="s3">0</span><span class="s0">; </span><span class="s4">//we dont count it.</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String rest1 :rests1) 
+            </span><span class="s0">for </span><span class="s1">(String rest2 : rests2) 
+                </span><span class="s0">if </span><span class="s1">(rest1.contains(rest2) | rest2.contains(rest1) ) 
+                    restscore = </span><span class="s3">1</span><span class="s0">; </span><span class="s4">//if one of them matches, we are satisfied.</span><span class="s1"> 
+ 
+ 
+        </span><span class="s0">if </span><span class="s1">(unitcount*restcount&gt;</span><span class="s3">0</span><span class="s1">){ </span><span class="s4">//both are positive, so both have been scored.</span><span class="s1"> 
+            final_score = (</span><span class="s3">1</span><span class="s1">-title_rest_weight)*unitscore + title_rest_weight*restscore</span><span class="s0">; </span><span class="s4">//average</span><span class="s1"> 
+        } </span><span class="s0">else</span><span class="s1"> 
+            final_score = unitscore+restscore</span><span class="s0">; </span><span class="s4">//at least one of them is not scored, so is 0. so range is 0-1.</span><span class="s1"> 
+        total_count = (</span><span class="s0">double</span><span class="s1">)(unitcount+restcount)</span><span class="s0">;</span><span class="s1"> 
+        </span><span class="s0">return new </span><span class="s1">Double[]{final_score</span><span class="s0">, </span><span class="s1">total_count}</span><span class="s0">;</span><span class="s1"> 
+    } 
+ 
+    </span><span class="s0">public static double </span><span class="s1">getFirstDouble(Key key</span><span class="s0">, </span><span class="s1">String value){ 
+        </span><span class="s4">//everything between brackets is not important:</span><span class="s1"> 
+        </span><span class="s0">if </span><span class="s1">(value.contains(</span><span class="s2">&quot;(&quot;</span><span class="s1">)){ 
+            value = value.substring(</span><span class="s3">0</span><span class="s0">,</span><span class="s1">value.indexOf(</span><span class="s2">&quot;(&quot;</span><span class="s1">))</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s4">//more cleaning:</span><span class="s1"> 
+        value = value.replace(</span><span class="s2">&quot;,&quot;</span><span class="s0">, </span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s4">//e.g. in milions. 1,000,000 should be just 1000000</span><span class="s1"> 
+                .replace(</span><span class="s2">&quot;x&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;$&quot;</span><span class="s0">, </span><span class="s2">&quot;dollar&quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;</span><span class="s0">\&quot;</span><span class="s2">&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;º&quot;</span><span class="s0">,</span><span class="s2">&quot;degrees&quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;/&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;”&quot;</span><span class="s0">, </span><span class="s2">&quot;inch&quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;:&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;~&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">) 
+                .replace(</span><span class="s2">&quot;-&quot;</span><span class="s0">, </span><span class="s2">&quot; &quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+ 
+        </span><span class="s4">//strip units:</span><span class="s1"> 
+        </span><span class="s0">for </span><span class="s1">(String unit : key.raw_units){ 
+            value = value.replace(unit</span><span class="s0">,</span><span class="s2">&quot;&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">if </span><span class="s1">(!value.contains(</span><span class="s2">&quot;+&quot;</span><span class="s1">)){ 
+            </span><span class="s4">//splitting and get double:</span><span class="s1"> 
+            String[] splits = value.split(</span><span class="s2">&quot; +|;&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(String waardeSplitted : splits) { 
+                String foundValue = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                Matcher getallen = numberDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(getallen.find()) { 
+                    foundValue = findGetallen(getallen)</span><span class="s0">;</span><span class="s1"> 
+                    </span><span class="s0">return </span><span class="s1">Double.parseDouble(foundValue)</span><span class="s0">;</span><span class="s4">//we are satisfied with only the first double.</span><span class="s1"> 
+                } 
+            } 
+        } </span><span class="s0">else </span><span class="s1">{ </span><span class="s4">//in case of multiple values splitted by a +, we take their sum.</span><span class="s1"> 
+            String[] splits = value.split(</span><span class="s2">&quot; +|;&quot;</span><span class="s1">)</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">double </span><span class="s1">d2=</span><span class="s3">0</span><span class="s0">;</span><span class="s1"> 
+            </span><span class="s0">boolean </span><span class="s1">found=</span><span class="s0">false;</span><span class="s1"> 
+            </span><span class="s0">for </span><span class="s1">(String waardeSplitted : splits) { 
+                String foundValue = </span><span class="s2">&quot;&quot;</span><span class="s0">;</span><span class="s1"> 
+                Matcher getallen = numberDetector.matcher(waardeSplitted)</span><span class="s0">;</span><span class="s1"> 
+                </span><span class="s0">if </span><span class="s1">(getallen.find()) { 
+                    found=</span><span class="s0">true;</span><span class="s1"> 
+                    foundValue = findGetallen(getallen)</span><span class="s0">;</span><span class="s1"> 
+                    d2 += Double.parseDouble(foundValue)</span><span class="s0">;</span><span class="s1"> 
+                } 
+            } 
+            </span><span class="s0">if</span><span class="s1">(found) 
+                </span><span class="s0">return </span><span class="s1">d2</span><span class="s0">;</span><span class="s1"> 
+        } 
+        </span><span class="s0">return </span><span class="s1">-</span><span class="s3">1</span><span class="s0">; </span><span class="s4">//means no double could be found.</span><span class="s1"> 
+    } 
+ 
+ 
+ 
+} 
+</span></pre>
+</body>
+</html>

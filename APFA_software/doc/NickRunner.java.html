@@ -1,0 +1,62 @@
+<html>
+<head>
+<title>NickRunner.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: rgb(0,0,0); font-weight: normal; font-style: normal; }
+.s0 { color: rgb(204,120,50); }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(104,151,187); }
+.s3 { color: rgb(106,135,89); }
+.s4 { color: rgb(128,128,128); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#C0C0C0" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+NickRunner.java</FONT>
+</center></TD></TR></TABLE>
+<pre>
+
+<span class="s0">package </span><span class="s1">com.damirvandic.sparker.students.nick</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">import </span><span class="s1">com.damirvandic.sparker.core.SparkRunner</span><span class="s0">;</span><span class="s1"> 
+ 
+</span><span class="s0">public class </span><span class="s1">NickRunner { 
+    </span><span class="s0">public static void </span><span class="s1">main(String[] args) { 
+        </span><span class="s0">if</span><span class="s1">(args.length == </span><span class="s2">0</span><span class="s1">){ 
+            args = </span><span class="s0">new </span><span class="s1">String[]{ 
+                    </span><span class="s3">&quot;-p:aligned_min=d 4&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:epsilon=d 0.2 &quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:keys_rest_weight=d 0.2 &quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:mu=d 0.6&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:title_min=d 2 &quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:title_rest_weight=d 0.65 &quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:epsilon2=d 999&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:shopHeuristic=b true&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:brandHeuristic=b true&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:keyMatcher=s NickKeyMatcher&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s4">//i dont use these below (except nr of bootstraps):</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:alpha=d 0.57&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:beta=d 0.0&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:gamma=d 0.70&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:kappa=d 1.0&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-p:lambda=d 1.0&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;-b&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;1&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;com.damirvandic.sparker.students.nick.NickFactory&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;TV's&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;./hdfs/TVs-all-merged.json&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;./hdfs/results&quot;</span><span class="s0">,</span><span class="s1"> 
+                    </span><span class="s3">&quot;../caches/nocaching&quot;</span><span class="s1"> 
+            }</span><span class="s0">;</span><span class="s1"> 
+        } 
+        SparkRunner runner = </span><span class="s0">new </span><span class="s1">SparkRunner(args)</span><span class="s0">;</span><span class="s1"> 
+        runner.run()</span><span class="s0">;</span><span class="s1"> 
+        runner.stop()</span><span class="s0">;</span><span class="s1"> 
+    } 
+} 
+</span></pre>
+</body>
+</html>
